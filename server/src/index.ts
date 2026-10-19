@@ -85,11 +85,36 @@ app.use('/api/iot', iotRoutes);
 // Error Handler
 app.use(errorHandler);
 
-// Start Server
+// Initialization promise for serverless/cold-start environments
+let isInitialized = false;
+let initPromise: Promise<void> | null = null;
+
+export async function ensureInitialized() {
+  if (isInitialized) return;
+  if (!initPromise) {
+    initPromise = (async () => {
+      try {
+        await connectDB();
+        await seedDatabase();
+        isInitialized = true;
+      } catch (err) {
+        console.error('[Enersense AI Server] Initialization error:', err);
+      }
+    })();
+  }
+  return initPromise;
+}
+
+// Middleware to ensure DB and seed initialization for incoming requests
+app.use(async (_req, _res, next) => {
+  await ensureInitialized();
+  next();
+});
+
+// Start Server for standalone execution
 async function startServer() {
   try {
-    await connectDB();
-    await seedDatabase();
+    await ensureInitialized();
 
     app.listen(config.port, '0.0.0.0', () => {
       console.log(`====================================================`);
@@ -104,7 +129,8 @@ async function startServer() {
   }
 }
 
-if (process.env.NODE_ENV !== 'test') {
+// Only start listening if run directly (not under Vercel serverless functions or tests)
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   startServer();
 }
 
