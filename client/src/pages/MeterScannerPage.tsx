@@ -17,6 +17,13 @@ import {
   Flashlight,
   Sparkles,
   Info,
+  Keyboard,
+  Calendar,
+  FileText,
+  Plus,
+  Minus,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '../services/authContext.js';
 import { api } from '../services/api.js';
@@ -25,6 +32,9 @@ import { OcrResponse, OcrCandidate } from '../types/index.js';
 export const MeterScannerPage: React.FC = () => {
   const navigate = useNavigate();
   const { activeMeter, meters, setActiveMeter, refreshUser, user } = useAuth();
+
+  // Dual Entry Mode: 'scan' (Google Lens Camera) | 'manual' (Direct Typing Counter)
+  const [entryMode, setEntryMode] = useState<'scan' | 'manual'>('scan');
 
   // Scanning & Detection State
   const [isScanning, setIsScanning] = useState(false);
@@ -50,10 +60,19 @@ export const MeterScannerPage: React.FC = () => {
   const nativeCameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Manual Adjustment Sheet
+  // Manual Adjustment Sheet (Post-Scan)
   const [showManualEdit, setShowManualEdit] = useState(false);
   const [manualInputValue, setManualInputValue] = useState('');
   const [isSavingManual, setIsSavingManual] = useState(false);
+
+  // Direct Manual Typing Mode State
+  const [directReadingVal, setDirectReadingVal] = useState<string>('');
+  const [directReadingDate, setDirectReadingDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [directNotes, setDirectNotes] = useState<string>('');
+  const [isSavingDirect, setIsSavingDirect] = useState<boolean>(false);
+  const [directError, setDirectError] = useState<string>('');
+  const [showRolloverPrompt, setShowRolloverPrompt] = useState<boolean>(false);
+  const [allowRollover, setAllowRollover] = useState<boolean>(false);
 
   // Trigger Device Haptic Feedback
   const triggerHaptic = (pattern: number | number[] = [30, 50, 30]) => {
@@ -64,13 +83,15 @@ export const MeterScannerPage: React.FC = () => {
     } catch (_) {}
   };
 
-  // Start Live Camera on Mount
+  // Start Live Camera on Mount if in Scan Mode
   useEffect(() => {
-    startCameraStream();
+    if (entryMode === 'scan') {
+      startCameraStream();
+    }
     return () => {
       stopCameraStream();
     };
-  }, []);
+  }, [entryMode]);
 
   const startCameraStream = async () => {
     try {
@@ -127,6 +148,14 @@ export const MeterScannerPage: React.FC = () => {
     } catch (err) {
       console.warn('Torch toggle not supported on this device:', err);
     }
+  };
+
+  // Adjust direct reading via steppers (+/-)
+  const adjustDirectReading = (delta: number) => {
+    const current = parseFloat(directReadingVal) || 0;
+    const next = Math.max(0, parseFloat((current + delta).toFixed(2)));
+    setDirectReadingVal(next.toString());
+    triggerHaptic(20);
   };
 
   // Capture Live Frame from Video Element
@@ -232,6 +261,58 @@ export const MeterScannerPage: React.FC = () => {
     }
   };
 
+  // Direct Manual Form Submission Handler
+  const handleDirectManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseFloat(directReadingVal);
+    if (isNaN(val) || val < 0) {
+      setDirectError('Please enter a valid non-negative meter reading.');
+      return;
+    }
+
+    const targetMeterId = activeMeter?._id || meters[0]?._id;
+    if (!targetMeterId) {
+      setDirectError('No registered electricity meter found.');
+      return;
+    }
+
+    setIsSavingDirect(true);
+    setDirectError('');
+
+    try {
+      const res = await api.createReading({
+        meterId: targetMeterId,
+        readingValue: val,
+        readingDate: directReadingDate,
+        source: 'manual',
+        verificationStatus: 'verified',
+        confidence: 100,
+        notes: directNotes || 'Manual meter entry',
+        allowRolloverOrReset: allowRollover || true,
+      });
+
+      if (res.success) {
+        setSavedReading(val);
+        setManualInputValue(val.toString());
+        setUnitsConsumed(res.unitsConsumed || val);
+        setEstimatedBill(res.estimatedBill || null);
+        setIsDuplicateScan(Boolean(res.isDuplicate));
+        triggerHaptic([60, 120, 60]);
+        await refreshUser();
+      } else {
+        throw new Error(res.message || 'Failed to record meter reading.');
+      }
+    } catch (err: any) {
+      if (err.message && err.message.includes('lower than previous')) {
+        setShowRolloverPrompt(true);
+      }
+      setDirectError(err.message || 'Failed to record meter reading.');
+      triggerHaptic([120, 60, 120]);
+    } finally {
+      setIsSavingDirect(false);
+    }
+  };
+
   // 1-Tap Candidate Switch
   const handleSelectCandidate = async (cand: OcrCandidate) => {
     if (!cand || cand.value === savedReading) return;
@@ -264,7 +345,7 @@ export const MeterScannerPage: React.FC = () => {
     }
   };
 
-  // Manual Override Submission
+  // Post-Scan Manual Override Submission
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const val = parseFloat(manualInputValue);
@@ -318,6 +399,9 @@ export const MeterScannerPage: React.FC = () => {
     setEstimatedBill(null);
     setScanError('');
     setShowManualEdit(false);
+    setDirectError('');
+    setShowRolloverPrompt(false);
+    setEntryMode('scan');
     if (!isCameraStreaming) {
       startCameraStream();
     }
@@ -343,18 +427,23 @@ export const MeterScannerPage: React.FC = () => {
       />
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* GOOGLE LENS TOP HEADER BAR */}
+      {/* TOP HEADER BAR */}
       <div className="relative z-20 flex items-center justify-between p-3 sm:p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent backdrop-blur-[2px] gap-2 min-w-0">
-        {/* TOP HEADER BAR */}
         <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
           <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-center text-white shrink-0">
-            <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            {entryMode === 'scan' ? (
+              <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
+            ) : (
+              <Keyboard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
+            )}
           </div>
           <div className="min-w-0">
             <div className="text-xs font-bold tracking-wide text-white truncate">
-              Smart Meter Scanner
+              {entryMode === 'scan' ? 'Smart Meter Scanner' : 'Manual Reading Entry'}
             </div>
-            <div className="text-[10px] text-white/60 truncate hidden xs:block">AI Meter Recognition</div>
+            <div className="text-[10px] text-white/60 truncate hidden xs:block">
+              {entryMode === 'scan' ? 'AI OCR Meter Recognition' : 'Direct Electric Counter Typing'}
+            </div>
           </div>
         </div>
 
@@ -382,8 +471,8 @@ export const MeterScannerPage: React.FC = () => {
             </div>
           )}
 
-          {/* Torch Toggle Button */}
-          {isCameraStreaming && (
+          {/* Torch Toggle Button (Only in camera scan mode) */}
+          {entryMode === 'scan' && isCameraStreaming && (
             <button
               onClick={toggleTorch}
               className={`p-1.5 sm:p-2 rounded-full border backdrop-blur-md transition-all shrink-0 ${
@@ -399,106 +488,315 @@ export const MeterScannerPage: React.FC = () => {
         </div>
       </div>
 
-      {/* FULL-VIEWPORT CAMERA CANVAS */}
-      <div className="relative flex-1 w-full min-h-[380px] sm:min-h-[460px] flex items-center justify-center overflow-hidden">
-        {/* Live Camera Stream Video */}
-        {isCameraStreaming && !imagePreviewUrl ? (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        ) : imagePreviewUrl ? (
-          <img
-            src={imagePreviewUrl}
-            alt="Scanned Meter"
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 p-6 text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/60">
-              <Camera className="w-8 h-8" />
-            </div>
-            <div className="space-y-1">
-              <div className="text-sm font-semibold text-white">Camera Viewfinder</div>
-              <p className="text-xs text-white/60 max-w-xs">
-                Tap the shutter below or upload a photo to scan your electric meter digits.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* GOOGLE LENS TARGETING RETICLE & CORNER BRACKETS */}
-        <div className="absolute inset-x-5 inset-y-10 sm:inset-x-20 sm:inset-y-24 pointer-events-none flex flex-col justify-between z-10">
-          {/* Top Corners */}
-          <div className="flex justify-between items-start">
-            <div className="w-7 h-7 sm:w-9 sm:h-9 border-t-[3.5px] border-l-[3.5px] border-white/90 rounded-tl-xl sm:rounded-tl-2xl shadow-sm drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" />
-            <div className="w-7 h-7 sm:w-9 sm:h-9 border-t-[3.5px] border-r-[3.5px] border-white/90 rounded-tr-xl sm:rounded-tr-2xl shadow-sm drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" />
-          </div>
-
-          {/* Shimmering Center Lens Pulse Dots */}
-          <div className="flex-1 flex flex-col items-center justify-center relative">
-            {/* Holographic Laser Bar */}
-            {isScanning && (
-              <div className="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_16px_#22C55E] animate-laser" />
-            )}
-
-            {/* Google Lens Ambient AR Box */}
-            <div className="relative border border-white/20 rounded-2xl px-3.5 sm:px-6 py-2 sm:py-3.5 bg-black/30 backdrop-blur-[2px] flex items-center justify-center max-w-[92%] mx-auto">
-              <span className="text-[10px] sm:text-xs font-mono tracking-wider sm:tracking-widest text-white/90 uppercase whitespace-nowrap">
-                {isScanning ? 'DETECTING DIGITS' : 'ALIGN METER NUMBERS'}
-              </span>
-            </div>
-          </div>
-
-          {/* Bottom Corners */}
-          <div className="flex justify-between items-end">
-            <div className="w-7 h-7 sm:w-9 sm:h-9 border-b-[3.5px] border-l-[3.5px] border-white/90 rounded-bl-xl sm:rounded-bl-2xl shadow-sm drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" />
-            <div className="w-7 h-7 sm:w-9 sm:h-9 border-b-[3.5px] border-r-[3.5px] border-white/90 rounded-br-xl sm:rounded-br-2xl shadow-sm drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" />
-          </div>
-        </div>
-
-        {/* SCANNING STATUS PILL */}
-        {isScanning && (
-          <div className="absolute top-16 z-30 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/80 backdrop-blur-md border border-white/20 shadow-2xl">
-            <RefreshCw className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
-            <span className="text-xs font-semibold text-white tracking-wide">
-              Analyzing meter display...
-            </span>
-          </div>
-        )}
-
-        {/* FLOATING AR BADGE OVER CENTER (When recognized) */}
-        {savedReading !== null && !isScanning && (
-          <div className="absolute top-20 z-30 animate-ar-pop">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500 text-slate-950 font-black text-sm shadow-xl shadow-emerald-500/30 border border-emerald-300">
-              <Zap className="w-4 h-4 fill-slate-950" />
-              <span>{savedReading} kWh Auto-Saved</span>
-            </div>
-          </div>
-        )}
-
-        {/* ERROR SNACKBAR */}
-        {scanError && (
-          <div className="absolute bottom-24 inset-x-4 z-30 p-3.5 rounded-2xl bg-rose-950/90 border border-rose-500/50 backdrop-blur-md text-rose-200 text-xs shadow-2xl flex items-center justify-between gap-3 animate-ar-pop">
-            <div className="flex items-center gap-2 flex-1">
-              <Info className="w-4 h-4 text-rose-400 shrink-0" />
-              <span>{scanError}</span>
-            </div>
+      {/* DUAL MODE SELECTOR TABS (Camera Scanner vs Manual Typing) */}
+      {savedReading === null && (
+        <div className="relative z-20 px-3 sm:px-4 pb-2.5 pt-0 flex items-center justify-center">
+          <div className="inline-flex p-1 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 gap-1 shadow-lg">
             <button
+              type="button"
               onClick={() => {
-                setScanError('');
-                nativeCameraInputRef.current?.click();
+                setEntryMode('scan');
+                triggerHaptic(20);
+                if (!isCameraStreaming) startCameraStream();
               }}
-              className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-[11px] shrink-0"
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                entryMode === 'scan'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md font-bold'
+                  : 'text-white/70 hover:text-white hover:bg-white/5'
+              }`}
             >
-              Retry
+              <Camera className="w-3.5 h-3.5" />
+              <span>Camera Scanner</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setEntryMode('manual');
+                triggerHaptic(20);
+                stopCameraStream();
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                entryMode === 'manual'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md font-bold'
+                  : 'text-white/70 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Keyboard className="w-3.5 h-3.5" />
+              <span>Type Reading</span>
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* MAIN VIEWPORT: CAMERA SCANNER OR DIRECT MANUAL TYPING CONSOLE */}
+      {savedReading === null && entryMode === 'scan' ? (
+        /* CAMERA SCANNER VIEWPORT */
+        <div className="relative flex-1 w-full min-h-[380px] sm:min-h-[460px] flex items-center justify-center overflow-hidden">
+          {/* Live Camera Stream Video */}
+          {isCameraStreaming && !imagePreviewUrl ? (
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : imagePreviewUrl ? (
+            <img
+              src={imagePreviewUrl}
+              alt="Scanned Meter"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 p-6 text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/60">
+                <Camera className="w-8 h-8" />
+              </div>
+              <div className="space-y-1">
+                <div className="text-sm font-semibold text-white">Camera Viewfinder</div>
+                <p className="text-xs text-white/60 max-w-xs">
+                  Tap the shutter below or upload a photo to scan your electric meter digits.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* GOOGLE LENS TARGETING RETICLE & CORNER BRACKETS */}
+          <div className="absolute inset-x-5 inset-y-10 sm:inset-x-20 sm:inset-y-24 pointer-events-none flex flex-col justify-between z-10">
+            {/* Top Corners */}
+            <div className="flex justify-between items-start">
+              <div className="w-7 h-7 sm:w-9 sm:h-9 border-t-[3.5px] border-l-[3.5px] border-white/90 rounded-tl-xl sm:rounded-tl-2xl shadow-sm drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" />
+              <div className="w-7 h-7 sm:w-9 sm:h-9 border-t-[3.5px] border-r-[3.5px] border-white/90 rounded-tr-xl sm:rounded-tr-2xl shadow-sm drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" />
+            </div>
+
+            {/* Shimmering Center Lens Pulse Dots */}
+            <div className="flex-1 flex flex-col items-center justify-center relative">
+              {/* Holographic Laser Bar */}
+              {isScanning && (
+                <div className="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_16px_#22C55E] animate-laser" />
+              )}
+
+              {/* Google Lens Ambient AR Box */}
+              <div className="relative border border-white/20 rounded-2xl px-3.5 sm:px-6 py-2 sm:py-3.5 bg-black/30 backdrop-blur-[2px] flex items-center justify-center max-w-[92%] mx-auto">
+                <span className="text-[10px] sm:text-xs font-mono tracking-wider sm:tracking-widest text-white/90 uppercase whitespace-nowrap">
+                  {isScanning ? 'DETECTING DIGITS' : 'ALIGN METER NUMBERS'}
+                </span>
+              </div>
+            </div>
+
+            {/* Bottom Corners */}
+            <div className="flex justify-between items-end">
+              <div className="w-7 h-7 sm:w-9 sm:h-9 border-b-[3.5px] border-l-[3.5px] border-white/90 rounded-bl-xl sm:rounded-bl-2xl shadow-sm drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" />
+              <div className="w-7 h-7 sm:w-9 sm:h-9 border-b-[3.5px] border-r-[3.5px] border-white/90 rounded-br-xl sm:rounded-br-2xl shadow-sm drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" />
+            </div>
+          </div>
+
+          {/* SCANNING STATUS PILL */}
+          {isScanning && (
+            <div className="absolute top-16 z-30 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/80 backdrop-blur-md border border-white/20 shadow-2xl">
+              <RefreshCw className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
+              <span className="text-xs font-semibold text-white tracking-wide">
+                Analyzing meter display...
+              </span>
+            </div>
+          )}
+
+          {/* ERROR SNACKBAR */}
+          {scanError && (
+            <div className="absolute bottom-24 inset-x-4 z-30 p-3.5 rounded-2xl bg-rose-950/90 border border-rose-500/50 backdrop-blur-md text-rose-200 text-xs shadow-2xl flex items-center justify-between gap-3 animate-ar-pop">
+              <div className="flex items-center gap-2 flex-1">
+                <Info className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{scanError}</span>
+              </div>
+              <button
+                onClick={() => {
+                  setScanError('');
+                  nativeCameraInputRef.current?.click();
+                }}
+                className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-[11px] shrink-0"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+        </div>
+      ) : savedReading === null && entryMode === 'manual' ? (
+        /* DIRECT MANUAL TYPING CONSOLE */
+        <div className="flex-1 w-full p-4 sm:p-6 flex flex-col justify-center items-center overflow-y-auto">
+          <form onSubmit={handleDirectManualSubmit} className="w-full max-w-md space-y-4">
+            {/* Header / Subtitle */}
+            <div className="text-center space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
+                <Zap className="w-3.5 h-3.5" />
+                <span>Manual Reading Typing</span>
+              </div>
+              <p className="text-xs text-white/60">
+                Type the counter digits displayed on your electric meter counter
+              </p>
+            </div>
+
+            {/* Error Message */}
+            {directError && (
+              <div className="p-3 bg-rose-950/70 border border-rose-500/40 rounded-xl text-xs text-rose-200 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                <div className="flex-1">{directError}</div>
+              </div>
+            )}
+
+            {/* Rollover Prompt if Reading < Previous */}
+            {showRolloverPrompt && (
+              <div className="p-3 bg-amber-950/70 border border-amber-500/40 rounded-xl text-xs text-amber-200 space-y-2">
+                <div className="font-semibold flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Lower than previous reading</span>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={allowRollover}
+                    onChange={(e) => setAllowRollover(e.target.checked)}
+                    className="rounded text-emerald-500 focus:ring-emerald-400 bg-black/40 border-white/20"
+                  />
+                  <span>Yes, my meter rolled over (passed 99999) or was replaced.</span>
+                </label>
+              </div>
+            )}
+
+            {/* HIGH-CONTRAST DIGITAL LCD METER COUNTER DISPLAY */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-slate-900 via-slate-950 to-black border border-emerald-500/30 shadow-[0_0_25px_rgba(16,185,129,0.12)] space-y-3">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-white/50 tracking-wider uppercase">
+                <span>ELECTRICITY METER DISPLAY</span>
+                <span className="text-emerald-400 font-mono">ACTIVE kWh</span>
+              </div>
+
+              {/* Main Numeric Counter Input Field */}
+              <div className="relative flex items-center justify-center">
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  required
+                  autoFocus
+                  value={directReadingVal}
+                  onChange={(e) => setDirectReadingVal(e.target.value)}
+                  placeholder="00000.0"
+                  className="w-full text-center text-3xl sm:text-4xl font-mono font-black text-emerald-400 bg-black/60 border border-emerald-500/40 rounded-2xl py-3 px-4 tracking-wider focus:outline-none focus:ring-2 focus:ring-emerald-400 placeholder-white/20 shadow-inner"
+                />
+                <span className="absolute right-4 text-sm font-bold text-white/60 pointer-events-none">
+                  kWh
+                </span>
+              </div>
+
+              {/* Quick Stepper Adjusters (-100, -10, -1, +1, +10, +100) */}
+              <div className="grid grid-cols-6 gap-1 pt-1">
+                {[-100, -10, -1, 1, 10, 100].map((delta) => (
+                  <button
+                    key={delta}
+                    type="button"
+                    onClick={() => adjustDirectReading(delta)}
+                    className="py-1.5 px-0.5 rounded-lg bg-white/5 hover:bg-white/10 active:bg-white/20 border border-white/10 text-[11px] font-mono text-white/80 hover:text-white transition-all text-center"
+                  >
+                    {delta > 0 ? `+${delta}` : delta}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Additional Metadata Fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Reading Date */}
+              <div>
+                <label className="block text-[11px] font-semibold text-white/70 mb-1">
+                  Reading Date
+                </label>
+                <div className="relative">
+                  <Calendar className="w-4 h-4 absolute left-3 top-2.5 text-white/40" />
+                  <input
+                    type="date"
+                    required
+                    value={directReadingDate}
+                    onChange={(e) => setDirectReadingDate(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-white/5 border border-white/15 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  />
+                </div>
+              </div>
+
+              {/* Target Meter Selector */}
+              <div>
+                <label className="block text-[11px] font-semibold text-white/70 mb-1">
+                  Target Meter
+                </label>
+                <select
+                  value={activeMeter?._id || ''}
+                  onChange={(e) => {
+                    const m = meters.find((x) => x._id === e.target.value);
+                    if (m) setActiveMeter(m);
+                  }}
+                  className="w-full px-3 py-2 text-xs bg-white/5 border border-white/15 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                >
+                  {meters.map((m) => (
+                    <option key={m._id} value={m._id} className="bg-slate-900 text-white">
+                      {m.meterName} ({m.meterIdentifier || 'LT'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Optional Notes */}
+            <div>
+              <label className="block text-[11px] font-semibold text-white/70 mb-1">
+                Notes (Optional)
+              </label>
+              <div className="relative">
+                <FileText className="w-4 h-4 absolute left-3 top-2.5 text-white/40" />
+                <input
+                  type="text"
+                  value={directNotes}
+                  onChange={(e) => setDirectNotes(e.target.value)}
+                  placeholder="e.g. Monthly utility bill reading verification"
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-white/5 border border-white/15 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                />
+              </div>
+            </div>
+
+            {/* Submit & Switch Actions */}
+            <div className="space-y-2 pt-2">
+              <button
+                type="submit"
+                disabled={isSavingDirect || !directReadingVal}
+                className="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-98"
+              >
+                {isSavingDirect ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Recording & Calculating Bill...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 fill-slate-950" />
+                    <span>Record Reading & Calculate Bill</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEntryMode('scan');
+                  triggerHaptic(20);
+                  startCameraStream();
+                }}
+                className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white font-medium text-xs flex items-center justify-center gap-1.5 transition-all"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>Switch to Camera Scanner</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
 
       {/* GOOGLE LENS SLIDE-UP BOTTOM SHEET (When Reading is Saved) */}
       {savedReading !== null && (
@@ -525,7 +823,7 @@ export const MeterScannerPage: React.FC = () => {
 
           {/* Hero Numbers: Large kWh & Estimated Bill */}
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3 pt-1">
-            {/* Left: Scanned kWh */}
+            {/* Left: Scanned/Entered kWh */}
             <div className="p-3 sm:p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-0.5 sm:space-y-1 min-w-0">
               <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/50 font-semibold truncate">
                 Detected Reading
@@ -550,7 +848,7 @@ export const MeterScannerPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Horizontal Google Lens Action Chips */}
+          {/* Horizontal Action Chips */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar touch-pan-x">
             {/* Primary Action: Go to Dashboard */}
             <button
@@ -570,16 +868,16 @@ export const MeterScannerPage: React.FC = () => {
               {copiedValue ? 'Copied' : 'Copy kWh'}
             </button>
 
-            {/* Re-Scan Button */}
+            {/* Record Another Button */}
             <button
               onClick={resetToCamera}
               className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-white text-xs font-medium flex items-center gap-1.5 shrink-0 border border-white/10 transition-all"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              Scan Another
+              Record Another
             </button>
 
-            {/* Candidate Chips (If multiple interpretations were detected) */}
+            {/* Candidate Chips (If multiple interpretations were detected via OCR) */}
             {ocrResult?.candidates &&
               ocrResult.candidates.map((cand, idx) => (
                 <button
@@ -605,7 +903,7 @@ export const MeterScannerPage: React.FC = () => {
             </button>
           </div>
 
-          {/* Collapsible Manual Edit Drawer */}
+          {/* Collapsible Post-Scan Manual Edit Drawer */}
           {showManualEdit && (
             <form onSubmit={handleManualSubmit} className="pt-2 border-t border-white/10 space-y-3">
               <div className="flex items-center gap-2">
@@ -631,9 +929,23 @@ export const MeterScannerPage: React.FC = () => {
         </div>
       )}
 
-      {/* GOOGLE LENS CAMERA CONTROLS (Active Viewfinder Bottom Bar) */}
-      {savedReading === null && (
+      {/* GOOGLE LENS CAMERA CONTROLS (Active Viewfinder Bottom Bar in Scan Mode) */}
+      {savedReading === null && entryMode === 'scan' && (
         <div className="relative z-20 w-full bg-gradient-to-t from-black via-black/80 to-transparent p-4 sm:p-6 pb-6 flex flex-col items-center gap-3">
+          {/* Quick Manual Entry Switch Pill directly above Shutter */}
+          <button
+            type="button"
+            onClick={() => {
+              setEntryMode('manual');
+              triggerHaptic(30);
+              stopCameraStream();
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20 text-white/90 hover:text-white text-xs font-medium shadow-md transition-all active:scale-95"
+          >
+            <Keyboard className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Type Reading Manually</span>
+          </button>
+
           <div className="w-full flex items-center justify-around max-w-xs sm:max-w-sm">
             {/* Gallery Upload Button (Left) */}
             <button
