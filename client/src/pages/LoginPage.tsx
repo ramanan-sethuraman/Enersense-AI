@@ -93,9 +93,10 @@ export const LoginPage: React.FC = () => {
             <Button
               type="submit"
               variant="primary"
-              className="w-full"
+              className="w-full text-sm font-bold shadow-md"
               loading={loading}
               icon={<ArrowRight className="w-4 h-4" />}
+              iconPosition="right"
             >
               Sign In
             </Button>

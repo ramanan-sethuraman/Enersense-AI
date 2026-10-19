@@ -6,6 +6,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   icon?: React.ReactNode;
+  iconPosition?: 'left' | 'right';
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -14,11 +15,12 @@ export const Button: React.FC<ButtonProps> = ({
   size = 'md',
   loading = false,
   icon,
+  iconPosition = 'left',
   className = '',
   disabled,
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98] whitespace-nowrap';
+  const baseStyles = 'inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98] overflow-hidden max-w-full';
 
   const variantStyles = {
     primary:
@@ -50,9 +52,12 @@ export const Button: React.FC<ButtonProps> = ({
       {loading ? (
         <Loader2 className="w-4 h-4 animate-spin text-current shrink-0" />
       ) : (
-        icon && <span className="shrink-0">{icon}</span>
+        icon && iconPosition === 'left' && <span className="shrink-0">{icon}</span>
       )}
-      <span className="inline-flex items-center justify-center gap-2 whitespace-nowrap">{children}</span>
+      <span className="truncate">{children}</span>
+      {!loading && icon && iconPosition === 'right' && (
+        <span className="shrink-0">{icon}</span>
+      )}
     </button>
   );
 };
