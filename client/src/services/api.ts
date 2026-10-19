@@ -16,19 +16,37 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
     delete headers['Content-Type'];
   }
 
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-    credentials: 'include',
-  });
+  try {
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
 
-  const data = await res.json().catch(() => ({ success: false, message: 'Server communication error' }));
+    let data: any;
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      data = await res.json().catch(() => null);
+    } else {
+      const text = await res.text().catch(() => '');
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { success: false, message: text || `Server error (${res.status})` };
+      }
+    }
 
-  if (!res.ok) {
-    throw new Error(data.message || `Request failed with status ${res.status}`);
+    if (!res.ok) {
+      throw new Error(data?.message || `Request failed with status ${res.status}`);
+    }
+
+    return data;
+  } catch (err: any) {
+    if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+      throw new Error('Unable to connect to Enersense server. Please verify backend is running.');
+    }
+    throw err;
   }
-
-  return data;
 }
 
 export const api = {

@@ -82,6 +82,14 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/iot', iotRoutes);
 
+// 404 Fallback for API routes (always return JSON, never HTML)
+app.use('/api', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `API route not found: ${req.method} ${req.originalUrl}`,
+  });
+});
+
 // Error Handler
 app.use(errorHandler);
 
@@ -105,22 +113,15 @@ export async function ensureInitialized() {
   return initPromise;
 }
 
-// Middleware to ensure DB and seed initialization for incoming requests
-app.use(async (_req, _res, next) => {
-  await ensureInitialized();
-  next();
-});
-
 // Start Server for standalone execution
 async function startServer() {
   try {
     await ensureInitialized();
 
-    app.listen(config.port, '0.0.0.0', () => {
+    app.listen(config.port, () => {
       console.log(`====================================================`);
       console.log(`Enersense AI Server running on port ${config.port}`);
       console.log(`Client URL: ${config.clientUrl}`);
-      console.log(`Network Address: http://0.0.0.0:${config.port}`);
       console.log(`====================================================`);
     });
   } catch (err) {
