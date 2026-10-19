@@ -19,19 +19,7 @@
       }
     },
     {
-      "source": "/assets/(.*)",
-      "destination": {
-        "service": "client"
-      }
-    },
-    {
-      "source": "/(.*\\.(?:js|css|png|jpg|jpeg|svg|ico|json|woff2?|webp|txt))",
-      "destination": {
-        "service": "client"
-      }
-    },
-    {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": {
         "service": "client",
         "path": "/index.html"
