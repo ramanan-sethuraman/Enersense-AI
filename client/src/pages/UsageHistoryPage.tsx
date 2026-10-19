@@ -197,7 +197,7 @@ export const UsageHistoryPage: React.FC = () => {
       {/* READINGS TABLE */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-soft overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[640px]">
             <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 uppercase tracking-wider text-[10px]">
               <tr>
                 <th className="p-3.5">Reading Date</th>

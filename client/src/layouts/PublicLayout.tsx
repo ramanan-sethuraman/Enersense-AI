@@ -9,12 +9,12 @@ export const PublicLayout: React.FC = () => {
   const { user, theme, toggleTheme } = useAuth();
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-100 antialiased flex flex-col">
+    <div className="min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-100 antialiased flex flex-col w-full overflow-x-hidden">
       {/* Public Header */}
       <header className="sticky top-0 z-40 w-full bg-white/80 dark:bg-black/90 backdrop-blur-md border-b border-slate-200/80 dark:border-neutral-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link to="/">
-            <Logo size="md" showTagline />
+        <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 min-w-0">
+          <Link to="/" className="shrink-0">
+            <Logo size="sm" showTagline />
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600 dark:text-slate-300">
@@ -32,30 +32,30 @@ export const PublicLayout: React.FC = () => {
             </a>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <button
               onClick={toggleTheme}
               title="Toggle Light/Dark Theme"
-              className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="p-1.5 sm:p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
             </button>
 
             {user ? (
               <Link to="/app">
-                <Button variant="primary" size="sm">
-                  Go to Dashboard
+                <Button variant="primary" size="sm" className="px-3 sm:px-4 text-xs sm:text-sm">
+                  Dashboard
                 </Button>
               </Link>
             ) : (
-              <div className="flex items-center gap-2">
-                <Link to="/login">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Link to="/login" className="hidden sm:inline-block">
                   <Button variant="ghost" size="sm">
                     Sign In
                   </Button>
                 </Link>
                 <Link to="/register">
-                  <Button variant="primary" size="sm">
+                  <Button variant="primary" size="sm" className="px-3 sm:px-4 text-xs sm:text-sm">
                     Get Started
                   </Button>
                 </Link>

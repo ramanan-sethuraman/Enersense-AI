@@ -35,24 +35,24 @@ export const StatCard: React.FC<StatCardProps> = ({
 
   return (
     <div className="relative overflow-hidden bg-white dark:bg-black rounded-2xl border border-emerald-500 hover:border-emerald-600 dark:border-emerald-500 dark:hover:border-emerald-400 p-5 shadow-soft hover:shadow-md dark:shadow-[0_0_15px_-3px_rgba(16,185,129,0.2)] transition-all duration-300">
-      <div className="flex items-start justify-between">
-        <div>
-          <span className="text-xs font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <span className="text-xs font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400 block truncate">
             {title}
           </span>
-          <div className="flex items-baseline gap-1.5 mt-2">
-            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          <div className="flex items-baseline gap-1.5 mt-2 flex-wrap">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white truncate">
               {value}
             </span>
             {unit && (
-              <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+              <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 shrink-0">
                 {unit}
               </span>
             )}
           </div>
         </div>
 
-        <div className={`p-3 rounded-xl border ${accentClasses[accent]}`}>
+        <div className={`p-2.5 sm:p-3 rounded-xl border shrink-0 ${accentClasses[accent]}`}>
           {icon}
         </div>
       </div>

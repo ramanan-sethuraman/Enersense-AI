@@ -194,7 +194,7 @@ export const ReportsPage: React.FC = () => {
             </h3>
 
             <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-              <table className="w-full text-left text-xs font-mono">
+              <table className="w-full text-left text-xs font-mono min-w-[500px]">
                 <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 uppercase text-[10px] font-sans font-bold">
                   <tr>
                     <th className="p-2.5">Date</th>

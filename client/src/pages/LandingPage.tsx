@@ -59,26 +59,26 @@ export const LandingPage: React.FC = () => {
             </span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white max-w-4xl mx-auto leading-[1.15]">
+          <h1 className="text-3xl xs:text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white max-w-4xl mx-auto leading-[1.15]">
             Take Control of Your Electricity.{' '}
             <span className="bg-gradient-to-r from-emerald-600 via-green-500 to-teal-500 bg-clip-text text-transparent">
               Save Smarter with AI.
             </span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-base sm:text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
             Turn your electricity readings into meaningful insights. Understand your energy consumption, estimate upcoming bills, and discover practical ways to save.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Link to="/register" className="w-full sm:w-auto">
-              <Button size="lg" variant="hero" className="w-full sm:w-auto px-8">
+              <Button size="lg" variant="hero" className="w-full sm:w-auto px-6 sm:px-8">
                 <span>Get Started Free</span>
                 <ArrowRight className="w-4 h-4 shrink-0" />
               </Button>
             </Link>
             <a href="#features" className="w-full sm:w-auto">
-              <Button size="lg" variant="hero" className="w-full sm:w-auto px-8">
+              <Button size="lg" variant="hero" className="w-full sm:w-auto px-6 sm:px-8">
                 Explore Features
               </Button>
             </a>
@@ -88,12 +88,12 @@ export const LandingPage: React.FC = () => {
           {/* HERO DASHBOARD PREVIEW MOCKUP */}
           <div className="pt-8 sm:pt-12 max-w-5xl mx-auto">
             <div className="relative rounded-2xl sm:rounded-3xl p-2 sm:p-4 bg-gradient-to-b from-slate-200/60 to-slate-300/40 dark:from-neutral-950 dark:to-black border border-slate-300/60 dark:border-emerald-500/50 shadow-2xl backdrop-blur-xl dark:shadow-[0_0_30px_-5px_rgba(16,185,129,0.25)]">
-              <div className="bg-white dark:bg-black rounded-xl sm:rounded-2xl p-4 sm:p-6 text-left space-y-6 border border-transparent dark:border-emerald-500/30">
+              <div className="bg-white dark:bg-black rounded-xl sm:rounded-2xl p-3.5 sm:p-6 text-left space-y-4 sm:space-y-6 border border-transparent dark:border-emerald-500/30">
                 {/* Header mock */}
-                <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-emerald-500/20">
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">Household Energy Dashboard Preview</h4>
-                    <p className="text-[11px] text-slate-400">Tamil Nadu (TANGEDCO) • Domestic 200 Units Free Scheme (≤500 Units)</p>
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-slate-100 dark:border-emerald-500/20">
+                  <div className="min-w-0">
+                    <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">Household Energy Dashboard Preview</h4>
+                    <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">Tamil Nadu (TANGEDCO) • Domestic 200 Units Free Scheme</p>
                   </div>
                   <Badge variant="success" size="sm">
                     Verified Meter OCR Active
@@ -101,26 +101,26 @@ export const LandingPage: React.FC = () => {
                 </div>
 
                 {/* 4 Cards Mock */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-black border border-emerald-500 dark:border-emerald-500 shadow-sm dark:shadow-[0_0_12px_-3px_rgba(16,185,129,0.2)]">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Current Period</span>
-                    <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1">245 kWh</p>
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">↓ 12.4% vs peak</span>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+                  <div className="p-3 sm:p-4 rounded-xl bg-slate-50 dark:bg-black border border-emerald-500 dark:border-emerald-500 shadow-sm dark:shadow-[0_0_12px_-3px_rgba(16,185,129,0.2)] min-w-0">
+                    <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">Current Period</span>
+                    <p className="text-lg xs:text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1 truncate">245 kWh</p>
+                    <span className="text-[9px] sm:text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold block truncate">↓ 12.4% vs peak</span>
                   </div>
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-black border border-emerald-500 dark:border-emerald-500 shadow-sm dark:shadow-[0_0_12px_-3px_rgba(16,185,129,0.2)]">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Estimated Bill</span>
-                    <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1">₹212</p>
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">200 Free Units Applied</span>
+                  <div className="p-3 sm:p-4 rounded-xl bg-slate-50 dark:bg-black border border-emerald-500 dark:border-emerald-500 shadow-sm dark:shadow-[0_0_12px_-3px_rgba(16,185,129,0.2)] min-w-0">
+                    <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">Estimated Bill</span>
+                    <p className="text-lg xs:text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1 truncate">₹212</p>
+                    <span className="text-[9px] sm:text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold block truncate">200 Free Units Applied</span>
                   </div>
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-black border border-emerald-500 dark:border-emerald-500 shadow-sm dark:shadow-[0_0_12px_-3px_rgba(16,185,129,0.2)]">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Top Consumer</span>
-                    <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mt-1 truncate">1.5 Ton AC</p>
-                    <span className="text-[10px] text-amber-600 font-semibold">41.2% of usage</span>
+                  <div className="p-3 sm:p-4 rounded-xl bg-slate-50 dark:bg-black border border-emerald-500 dark:border-emerald-500 shadow-sm dark:shadow-[0_0_12px_-3px_rgba(16,185,129,0.2)] min-w-0">
+                    <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">Top Consumer</span>
+                    <p className="text-sm xs:text-base sm:text-lg font-bold text-slate-900 dark:text-white mt-1 truncate">1.5 Ton AC</p>
+                    <span className="text-[9px] sm:text-[10px] text-amber-600 font-semibold block truncate">41.2% of usage</span>
                   </div>
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-black border border-emerald-500 dark:border-emerald-500 shadow-sm dark:shadow-[0_0_12px_-3px_rgba(16,185,129,0.2)]">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">AI Goal Progress</span>
-                    <p className="text-xl sm:text-2xl font-black text-emerald-600 mt-1">60% Done</p>
-                    <span className="text-[10px] text-slate-500">Target &lt; 220 kWh</span>
+                  <div className="p-3 sm:p-4 rounded-xl bg-slate-50 dark:bg-black border border-emerald-500 dark:border-emerald-500 shadow-sm dark:shadow-[0_0_12px_-3px_rgba(16,185,129,0.2)] min-w-0">
+                    <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">AI Goal Progress</span>
+                    <p className="text-lg xs:text-xl sm:text-2xl font-black text-emerald-600 mt-1 truncate">60% Done</p>
+                    <span className="text-[9px] sm:text-[10px] text-slate-500 block truncate">Target &lt; 220 kWh</span>
                   </div>
                 </div>
 

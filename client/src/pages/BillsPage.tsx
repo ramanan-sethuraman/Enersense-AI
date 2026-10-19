@@ -397,7 +397,7 @@ export const BillsPage: React.FC = () => {
                   Detailed Slab-by-Slab Breakdown
                 </h4>
                 <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-                  <table className="w-full text-left text-xs">
+                  <table className="w-full text-left text-xs min-w-[440px]">
                     <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 uppercase tracking-wider text-[10px]">
                       <tr>
                         <th className="p-3">Tariff Slab Tier</th>

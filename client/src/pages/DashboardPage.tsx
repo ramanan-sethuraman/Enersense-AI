@@ -114,19 +114,19 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Quick Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Link to="/app/meter-scanner">
-            <Button variant="primary" size="sm" icon={<ScanLine className="w-4 h-4" />}>
+        <div className="grid grid-cols-3 sm:flex items-center gap-2 w-full sm:w-auto">
+          <Link to="/app/meter-scanner" className="w-full sm:w-auto">
+            <Button variant="primary" size="sm" className="w-full justify-center px-2 sm:px-3 text-xs" icon={<ScanLine className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}>
               Scan Meter
             </Button>
           </Link>
-          <Link to="/app/bills">
-            <Button variant="outline" size="sm" icon={<Calculator className="w-4 h-4" />}>
+          <Link to="/app/bills" className="w-full sm:w-auto">
+            <Button variant="outline" size="sm" className="w-full justify-center px-2 sm:px-3 text-xs" icon={<Calculator className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}>
               Calculate Bill
             </Button>
           </Link>
-          <Link to="/app/appliances">
-            <Button variant="outline" size="sm" icon={<Cpu className="w-4 h-4" />}>
+          <Link to="/app/appliances" className="w-full sm:w-auto">
+            <Button variant="outline" size="sm" className="w-full justify-center px-2 sm:px-3 text-xs" icon={<Cpu className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}>
               Appliances
             </Button>
           </Link>
@@ -403,25 +403,25 @@ export const DashboardPage: React.FC = () => {
                 {applianceData?.appliances?.slice(0, 4).map((app: any, idx: number) => (
                   <div
                     key={app._id}
-                    className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-4"
+                    className="p-3 sm:p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-3 min-w-0"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
                       <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-xs flex items-center justify-center shrink-0">
                         #{idx + 1}
                       </span>
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">{app.name}</h4>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {app.ratedPowerWatts}W • {app.dailyOperatingHours} hrs/day • {app.category}
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">{app.name}</h4>
+                        <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">
+                          {app.ratedPowerWatts}W • {app.dailyOperatingHours} hrs/d • {app.category}
                         </p>
                       </div>
                     </div>
 
                     <div className="text-right shrink-0">
-                      <span className="text-sm font-extrabold text-slate-900 dark:text-white">
+                      <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white block whitespace-nowrap">
                         {app.monthlyKwh} kWh
                       </span>
-                      <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                      <p className="text-[11px] sm:text-xs font-semibold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                         ~₹{app.monthlyCost}/mo
                       </p>
                     </div>

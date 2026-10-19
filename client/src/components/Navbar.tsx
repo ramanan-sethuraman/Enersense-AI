@@ -21,32 +21,33 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar, onOpenAddReading 
   };
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 sm:px-6 bg-white/80 dark:bg-black/90 backdrop-blur-md border-b border-slate-200 dark:border-neutral-800">
+    <header className="sticky top-0 z-30 flex items-center justify-between h-14 sm:h-16 px-3 sm:px-6 bg-white/80 dark:bg-black/90 backdrop-blur-md border-b border-slate-200 dark:border-neutral-800 w-full min-w-0">
       {/* Left: Mobile hamburger & Meter selector */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <button
           onClick={onOpenSidebar}
-          className="p-2 -ml-2 text-slate-500 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden"
+          className="p-1.5 sm:p-2 -ml-1 text-slate-500 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden shrink-0"
+          aria-label="Open Navigation"
         >
           <Menu className="w-5 h-5" />
         </button>
 
         {/* Meter Selector */}
         {meters.length > 0 && (
-          <div className="relative">
+          <div className="relative min-w-0">
             <button
               onClick={() => setShowMeterMenu(!showMeterMenu)}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-neutral-800 transition"
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-neutral-800 transition min-w-0"
             >
               <Gauge className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-              <span className="truncate max-w-[130px] sm:max-w-[200px]">
+              <span className="truncate max-w-[95px] xs:max-w-[130px] sm:max-w-[200px]">
                 {activeMeter?.meterName || 'Select Meter'}
               </span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             </button>
 
             {showMeterMenu && (
-              <div className="absolute left-0 mt-2 w-56 p-1 bg-white dark:bg-[#0A0A0A] rounded-xl shadow-xl border border-slate-200 dark:border-neutral-800 z-50 animate-in fade-in">
+              <div className="absolute left-0 mt-2 w-56 max-w-[calc(100vw-2rem)] p-1 bg-white dark:bg-[#0A0A0A] rounded-xl shadow-xl border border-slate-200 dark:border-neutral-800 z-50 animate-in fade-in">
                 <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   Your Electricity Meters
                 </div>
@@ -74,7 +75,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar, onOpenAddReading 
       </div>
 
       {/* Right: Actions, Theme, Notifications, User */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
         {onOpenAddReading && (
           <button
             onClick={onOpenAddReading}
@@ -89,7 +90,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar, onOpenAddReading 
         <button
           onClick={toggleTheme}
           title="Toggle Light/Dark Theme"
-          className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+          className="p-1.5 sm:p-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
         >
           {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
         </button>
@@ -98,13 +99,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar, onOpenAddReading 
         <div className="relative">
           <button
             onClick={() => setShowNotification(!showNotification)}
-            className="relative p-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="relative p-1.5 sm:p-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
           >
             <Bell className="w-4 h-4" />
           </button>
 
           {showNotification && (
-            <div className="absolute right-0 mt-2 w-72 sm:w-80 p-3 bg-white dark:bg-[#0A0A0A] rounded-2xl shadow-xl border border-slate-200 dark:border-neutral-800 z-50">
+            <div className="absolute right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] p-3 bg-white dark:bg-[#0A0A0A] rounded-2xl shadow-xl border border-slate-200 dark:border-neutral-800 z-50">
               <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-neutral-800">
                 <span className="text-xs font-bold text-slate-900 dark:text-white">Energy Alerts</span>
                 <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">1 New</span>
@@ -127,15 +128,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar, onOpenAddReading 
         <div className="relative">
           <button
             onClick={() => setShowProfileMenu(!showProfileMenu)}
-            className="flex items-center gap-2 p-1 pl-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-neutral-800 transition"
+            className="flex items-center gap-1.5 sm:gap-2 p-1 pl-1.5 sm:pl-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-neutral-800 transition"
           >
-            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-emerald-500 to-green-600 text-white flex items-center justify-center font-bold text-[10px]">
+            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-emerald-500 to-green-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
               {user?.name ? user.name.slice(0, 2).toUpperCase() : 'EA'}
             </div>
             <span className="hidden sm:inline-block truncate max-w-[100px]">
               {user?.name || 'User'}
             </span>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:inline-block shrink-0" />
           </button>
 
           {showProfileMenu && (

@@ -20,6 +20,13 @@
     --color-subtext: #94A3B8;
   }
 
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   }
@@ -31,6 +38,11 @@
     color: #F8FAFC;
   }
 
+  /* Prevent recharts overflow blowing out flex/grid containers */
+  .recharts-responsive-container {
+    min-width: 0 !important;
+  }
+
   /* Hide number input spin buttons */
   input[type='number']::-webkit-inner-spin-button,
   input[type='number']::-webkit-outer-spin-button {
@@ -40,6 +52,23 @@
   input[type='number'] {
     -moz-appearance: textfield;
   }
+}
+
+/* Hide scrollbars for clean horizontal chip bars on mobile */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Mobile Safe Area Padding */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 1rem);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0.5rem);
 }
 
 /* Custom Scrollbar */

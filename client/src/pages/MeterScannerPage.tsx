@@ -324,7 +324,7 @@ export const MeterScannerPage: React.FC = () => {
   };
 
   return (
-    <div className="relative w-full max-w-2xl mx-auto min-h-[calc(100vh-6.5rem)] flex flex-col justify-between overflow-hidden bg-black text-white rounded-3xl sm:border sm:border-slate-800 shadow-2xl select-none">
+    <div className="relative w-full max-w-2xl mx-auto min-h-[calc(100dvh-5.5rem)] flex flex-col justify-between overflow-hidden bg-black text-white rounded-2xl sm:rounded-3xl sm:border sm:border-slate-800 shadow-2xl select-none">
       {/* Hidden Native Inputs */}
       <input
         ref={nativeCameraInputRef}
@@ -344,22 +344,22 @@ export const MeterScannerPage: React.FC = () => {
       <canvas ref={canvasRef} className="hidden" />
 
       {/* GOOGLE LENS TOP HEADER BAR */}
-      <div className="relative z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent backdrop-blur-[2px]">
+      <div className="relative z-20 flex items-center justify-between p-3 sm:p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent backdrop-blur-[2px] gap-2 min-w-0">
         {/* TOP HEADER BAR */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-center text-white">
-            <Camera className="w-4 h-4" />
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-center text-white shrink-0">
+            <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
-          <div>
-            <div className="text-xs font-bold tracking-wide text-white">
+          <div className="min-w-0">
+            <div className="text-xs font-bold tracking-wide text-white truncate">
               Smart Meter Scanner
             </div>
-            <div className="text-[10px] text-white/60">AI Meter Recognition</div>
+            <div className="text-[10px] text-white/60 truncate hidden xs:block">AI Meter Recognition</div>
           </div>
         </div>
 
         {/* Active Meter Dropdown / Pill */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {meters.length > 1 ? (
             <select
               value={activeMeter?._id || ''}
@@ -367,7 +367,7 @@ export const MeterScannerPage: React.FC = () => {
                 const m = meters.find((x) => x._id === e.target.value);
                 if (m) setActiveMeter(m);
               }}
-              className="text-[11px] bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-3 py-1 text-white font-medium focus:outline-none"
+              className="text-[10px] sm:text-[11px] bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-2.5 sm:px-3 py-1 text-white font-medium focus:outline-none max-w-[120px] sm:max-w-[180px] truncate"
             >
               {meters.map((m) => (
                 <option key={m._id} value={m._id} className="bg-slate-900 text-white">
@@ -376,9 +376,9 @@ export const MeterScannerPage: React.FC = () => {
               ))}
             </select>
           ) : (
-            <div className="text-[11px] bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-3 py-1 text-white/90 font-medium flex items-center gap-1">
-              <Zap className="w-3 h-3 text-emerald-400" />
-              {activeMeter?.meterName || 'Main Meter'}
+            <div className="text-[10px] sm:text-[11px] bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-2.5 sm:px-3 py-1 text-white/90 font-medium flex items-center gap-1 max-w-[120px] sm:max-w-[180px] truncate">
+              <Zap className="w-3 h-3 text-emerald-400 shrink-0" />
+              <span className="truncate">{activeMeter?.meterName || 'Main Meter'}</span>
             </div>
           )}
 
@@ -386,7 +386,7 @@ export const MeterScannerPage: React.FC = () => {
           {isCameraStreaming && (
             <button
               onClick={toggleTorch}
-              className={`p-2 rounded-full border backdrop-blur-md transition-all ${
+              className={`p-1.5 sm:p-2 rounded-full border backdrop-blur-md transition-all shrink-0 ${
                 torchOn
                   ? 'bg-amber-400 text-black border-amber-300'
                   : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
@@ -400,7 +400,7 @@ export const MeterScannerPage: React.FC = () => {
       </div>
 
       {/* FULL-VIEWPORT CAMERA CANVAS */}
-      <div className="relative flex-1 w-full min-h-[460px] flex items-center justify-center overflow-hidden">
+      <div className="relative flex-1 w-full min-h-[380px] sm:min-h-[460px] flex items-center justify-center overflow-hidden">
         {/* Live Camera Stream Video */}
         {isCameraStreaming && !imagePreviewUrl ? (
           <video
@@ -431,11 +431,11 @@ export const MeterScannerPage: React.FC = () => {
         )}
 
         {/* GOOGLE LENS TARGETING RETICLE & CORNER BRACKETS */}
-        <div className="absolute inset-x-12 inset-y-16 sm:inset-x-20 sm:inset-y-24 pointer-events-none flex flex-col justify-between z-10">
+        <div className="absolute inset-x-5 inset-y-10 sm:inset-x-20 sm:inset-y-24 pointer-events-none flex flex-col justify-between z-10">
           {/* Top Corners */}
           <div className="flex justify-between items-start">
-            <div className="w-9 h-9 border-t-[3.5px] border-l-[3.5px] border-white/90 rounded-tl-2xl shadow-sm drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" />
-            <div className="w-9 h-9 border-t-[3.5px] border-r-[3.5px] border-white/90 rounded-tr-2xl shadow-sm drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" />
+            <div className="w-7 h-7 sm:w-9 sm:h-9 border-t-[3.5px] border-l-[3.5px] border-white/90 rounded-tl-xl sm:rounded-tl-2xl shadow-sm drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" />
+            <div className="w-7 h-7 sm:w-9 sm:h-9 border-t-[3.5px] border-r-[3.5px] border-white/90 rounded-tr-xl sm:rounded-tr-2xl shadow-sm drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" />
           </div>
 
           {/* Shimmering Center Lens Pulse Dots */}
@@ -445,9 +445,9 @@ export const MeterScannerPage: React.FC = () => {
               <div className="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_16px_#22C55E] animate-laser" />
             )}
 
-            {/* Google Lens Ambient AR Dots in Center Target Box */}
-            <div className="relative border border-white/20 rounded-2xl px-6 py-4 bg-black/25 backdrop-blur-[2px] flex items-center justify-center">
-              <span className="text-[11px] font-mono tracking-widest text-white/80 uppercase">
+            {/* Google Lens Ambient AR Box */}
+            <div className="relative border border-white/20 rounded-2xl px-3.5 sm:px-6 py-2 sm:py-3.5 bg-black/30 backdrop-blur-[2px] flex items-center justify-center max-w-[92%] mx-auto">
+              <span className="text-[10px] sm:text-xs font-mono tracking-wider sm:tracking-widest text-white/90 uppercase whitespace-nowrap">
                 {isScanning ? 'DETECTING DIGITS' : 'ALIGN METER NUMBERS'}
               </span>
             </div>
@@ -455,8 +455,8 @@ export const MeterScannerPage: React.FC = () => {
 
           {/* Bottom Corners */}
           <div className="flex justify-between items-end">
-            <div className="w-9 h-9 border-b-[3.5px] border-l-[3.5px] border-white/90 rounded-bl-2xl shadow-sm drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" />
-            <div className="w-9 h-9 border-b-[3.5px] border-r-[3.5px] border-white/90 rounded-br-2xl shadow-sm drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" />
+            <div className="w-7 h-7 sm:w-9 sm:h-9 border-b-[3.5px] border-l-[3.5px] border-white/90 rounded-bl-xl sm:rounded-bl-2xl shadow-sm drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" />
+            <div className="w-7 h-7 sm:w-9 sm:h-9 border-b-[3.5px] border-r-[3.5px] border-white/90 rounded-br-xl sm:rounded-br-2xl shadow-sm drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" />
           </div>
         </div>
 
@@ -524,38 +524,38 @@ export const MeterScannerPage: React.FC = () => {
           </div>
 
           {/* Hero Numbers: Large kWh & Estimated Bill */}
-          <div className="grid grid-cols-2 gap-3 pt-1">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3 pt-1">
             {/* Left: Scanned kWh */}
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-              <div className="text-[10px] uppercase tracking-wider text-white/50 font-semibold">
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-0.5 sm:space-y-1 min-w-0">
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/50 font-semibold truncate">
                 Detected Reading
               </div>
-              <div className="text-3xl sm:text-4xl font-black font-mono text-emerald-400 tracking-tight">
-                {savedReading}
-                <span className="text-sm font-semibold text-white/70 ml-1.5 font-sans">kWh</span>
+              <div className="text-xl xs:text-2xl sm:text-3xl font-black font-mono text-emerald-400 tracking-tight truncate flex items-baseline">
+                <span className="truncate">{savedReading}</span>
+                <span className="text-xs sm:text-sm font-semibold text-white/70 ml-1 font-sans shrink-0">kWh</span>
               </div>
             </div>
 
             {/* Right: Calculated Electricity Bill */}
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-              <div className="text-[10px] uppercase tracking-wider text-white/50 font-semibold">
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-0.5 sm:space-y-1 min-w-0">
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/50 font-semibold truncate">
                 Estimated Bill
               </div>
-              <div className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+              <div className="text-xl xs:text-2xl sm:text-3xl font-black text-white tracking-tight truncate">
                 ₹{estimatedBill !== null ? estimatedBill.toLocaleString('en-IN') : '...'}
               </div>
-              <div className="text-[10px] text-emerald-400 font-medium">
+              <div className="text-[9px] sm:text-[10px] text-emerald-400 font-medium truncate">
                 {user?.locationPreferences?.distributionCompany || 'TANGEDCO'} Slab
               </div>
             </div>
           </div>
 
           {/* Horizontal Google Lens Action Chips */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar touch-pan-x">
             {/* Primary Action: Go to Dashboard */}
             <button
               onClick={() => navigate('/app')}
-              className="px-4 py-2.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+              className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
             >
               <Zap className="w-3.5 h-3.5 fill-slate-950" />
               View Dashboard
@@ -564,7 +564,7 @@ export const MeterScannerPage: React.FC = () => {
             {/* Copy Reading Number */}
             <button
               onClick={copyReadingNumber}
-              className="px-3.5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-white text-xs font-medium flex items-center gap-1.5 shrink-0 border border-white/10 transition-all"
+              className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-white text-xs font-medium flex items-center gap-1.5 shrink-0 border border-white/10 transition-all"
             >
               {copiedValue ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               {copiedValue ? 'Copied' : 'Copy kWh'}
@@ -573,7 +573,7 @@ export const MeterScannerPage: React.FC = () => {
             {/* Re-Scan Button */}
             <button
               onClick={resetToCamera}
-              className="px-3.5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-white text-xs font-medium flex items-center gap-1.5 shrink-0 border border-white/10 transition-all"
+              className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-white text-xs font-medium flex items-center gap-1.5 shrink-0 border border-white/10 transition-all"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               Scan Another
@@ -585,7 +585,7 @@ export const MeterScannerPage: React.FC = () => {
                 <button
                   key={idx}
                   onClick={() => handleSelectCandidate(cand)}
-                  className={`px-3.5 py-2.5 rounded-full text-xs font-mono font-medium shrink-0 border transition-all ${
+                  className={`px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-full text-xs font-mono font-medium shrink-0 border transition-all ${
                     cand.value === savedReading
                       ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                       : 'bg-white/5 text-white/80 hover:bg-white/10 border-white/10'
@@ -598,7 +598,7 @@ export const MeterScannerPage: React.FC = () => {
             {/* Manual Edit Toggle Chip */}
             <button
               onClick={() => setShowManualEdit(!showManualEdit)}
-              className="px-3.5 py-2.5 rounded-full bg-white/5 hover:bg-white/10 text-white/70 text-xs font-medium flex items-center gap-1.5 shrink-0 border border-white/10"
+              className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-full bg-white/5 hover:bg-white/10 text-white/70 text-xs font-medium flex items-center gap-1.5 shrink-0 border border-white/10"
             >
               <Sliders className="w-3.5 h-3.5" />
               Edit Manually
@@ -616,12 +616,12 @@ export const MeterScannerPage: React.FC = () => {
                   value={manualInputValue}
                   onChange={(e) => setManualInputValue(e.target.value)}
                   placeholder="Enter correct kWh"
-                  className="flex-1 bg-white/10 border border-white/20 rounded-xl px-3.5 py-2 text-sm font-mono text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  className="flex-1 bg-white/10 border border-white/20 rounded-xl px-3.5 py-2 text-sm font-mono text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 min-w-0"
                 />
                 <button
                   type="submit"
                   disabled={isSavingManual}
-                  className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs"
+                  className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shrink-0"
                 >
                   {isSavingManual ? 'Saving...' : 'Update'}
                 </button>
@@ -633,13 +633,13 @@ export const MeterScannerPage: React.FC = () => {
 
       {/* GOOGLE LENS CAMERA CONTROLS (Active Viewfinder Bottom Bar) */}
       {savedReading === null && (
-        <div className="relative z-20 w-full bg-gradient-to-t from-black via-black/80 to-transparent p-6 flex flex-col items-center gap-4">
-          <div className="w-full flex items-center justify-around max-w-sm">
+        <div className="relative z-20 w-full bg-gradient-to-t from-black via-black/80 to-transparent p-4 sm:p-6 pb-6 flex flex-col items-center gap-3">
+          <div className="w-full flex items-center justify-around max-w-xs sm:max-w-sm">
             {/* Gallery Upload Button (Left) */}
             <button
               onClick={() => galleryInputRef.current?.click()}
               disabled={isScanning}
-              className="w-12 h-12 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white/80 transition-all active:scale-95"
+              className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white/80 transition-all active:scale-95 shrink-0"
               title="Pick Photo from Gallery"
             >
               <ImageIcon className="w-5 h-5" />
@@ -649,7 +649,7 @@ export const MeterScannerPage: React.FC = () => {
             <button
               onClick={handleShutterClick}
               disabled={isScanning}
-              className="relative w-20 h-20 rounded-full border-4 border-white/40 flex items-center justify-center p-1.5 transition-all active:scale-90 group"
+              className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white/40 flex items-center justify-center p-1.5 transition-all active:scale-90 group shrink-0"
               title="Capture & Detect Meter Reading"
             >
               {/* Outer Glow Halo */}
@@ -657,7 +657,7 @@ export const MeterScannerPage: React.FC = () => {
 
               {/* Inner Solid Shutter Disk */}
               <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-slate-950 shadow-2xl transition-transform group-hover:scale-95">
-                <Camera className="w-7 h-7" />
+                <Camera className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
             </button>
 
@@ -665,7 +665,7 @@ export const MeterScannerPage: React.FC = () => {
             <button
               onClick={() => nativeCameraInputRef.current?.click()}
               disabled={isScanning}
-              className="w-12 h-12 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white/80 transition-all active:scale-95"
+              className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white/80 transition-all active:scale-95 shrink-0"
               title="Launch Phone Native Camera"
             >
               <Smartphone className="w-5 h-5 text-emerald-400" />
