@@ -154,4 +154,10 @@ if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   startServer();
 }
 
+// Support both ES module default and CommonJS module.exports for Vercel Serverless
+if (typeof module !== 'undefined' && module.exports) {
+  (module as any).exports = app;
+  (module as any).exports.default = app;
+}
+
 export default app;
