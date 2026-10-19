@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const meterController_js_1 = require("../controllers/meterController.js");
+const authMiddleware_js_1 = require("../middleware/authMiddleware.js");
+const router = (0, express_1.Router)();
+router.use(authMiddleware_js_1.requireAuth);
+router.get('/', meterController_js_1.MeterController.getMeters);
+router.post('/', meterController_js_1.MeterController.createMeter);
+router.get('/:id', meterController_js_1.MeterController.getMeterById);
+router.put('/:id', meterController_js_1.MeterController.updateMeter);
+router.delete('/:id', meterController_js_1.MeterController.deleteMeter);
+exports.default = router;

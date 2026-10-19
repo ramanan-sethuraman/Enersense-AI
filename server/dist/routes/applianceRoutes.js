@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const applianceController_js_1 = require("../controllers/applianceController.js");
+const authMiddleware_js_1 = require("../middleware/authMiddleware.js");
+const router = (0, express_1.Router)();
+router.use(authMiddleware_js_1.requireAuth);
+router.get('/', applianceController_js_1.ApplianceController.getAppliances);
+router.post('/', applianceController_js_1.ApplianceController.createAppliance);
+router.put('/:id', applianceController_js_1.ApplianceController.updateAppliance);
+router.delete('/:id', applianceController_js_1.ApplianceController.deleteAppliance);
+exports.default = router;

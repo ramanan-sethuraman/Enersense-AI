@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const readingController_js_1 = require("../controllers/readingController.js");
+const authMiddleware_js_1 = require("../middleware/authMiddleware.js");
+const router = (0, express_1.Router)();
+router.use(authMiddleware_js_1.requireAuth);
+router.get('/', readingController_js_1.ReadingController.getReadings);
+router.post('/', readingController_js_1.ReadingController.createReading);
+router.get('/:id', readingController_js_1.ReadingController.getReadingById);
+router.put('/:id', readingController_js_1.ReadingController.updateReading);
+router.delete('/:id', readingController_js_1.ReadingController.deleteReading);
+exports.default = router;

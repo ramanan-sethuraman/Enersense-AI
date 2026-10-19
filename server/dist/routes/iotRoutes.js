@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const iotController_js_1 = require("../controllers/iotController.js");
+const authMiddleware_js_1 = require("../middleware/authMiddleware.js");
+const router = (0, express_1.Router)();
+router.use(authMiddleware_js_1.requireAuth);
+router.get('/devices', iotController_js_1.IotController.getDevices);
+router.post('/devices', iotController_js_1.IotController.registerDevice);
+router.post('/telemetry', iotController_js_1.IotController.ingestTelemetry);
+router.get('/telemetry', iotController_js_1.IotController.getRecentTelemetry);
+exports.default = router;
