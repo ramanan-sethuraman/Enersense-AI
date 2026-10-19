@@ -1,0 +1,111 @@
+import express from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import { config } from './config/env.js';
+import { connectDB } from './config/database.js';
+import { seedDatabase } from './utils/seed.js';
+import { errorHandler } from './middleware/errorMiddleware.js';
+
+// Route imports
+import authRoutes from './routes/authRoutes.js';
+import meterRoutes from './routes/meterRoutes.js';
+import readingRoutes from './routes/readingRoutes.js';
+import ocrRoutes from './routes/ocrRoutes.js';
+import tariffRoutes from './routes/tariffRoutes.js';
+import applianceRoutes from './routes/applianceRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
+import recommendationRoutes from './routes/recommendationRoutes.js';
+import forecastRoutes from './routes/forecastRoutes.js';
+import goalRoutes from './routes/goalRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
+import settingsRoutes from './routes/settingsRoutes.js';
+import iotRoutes from './routes/iotRoutes.js';
+
+const app = express();
+
+// Middleware
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // allow requests with no origin (like mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+      if (
+        origin === config.clientUrl ||
+        origin.startsWith('http://localhost') ||
+        origin.startsWith('http://127.0.0.1') ||
+        origin.startsWith('http://192.168.') ||
+        origin.startsWith('http://10.') ||
+        origin.startsWith('http://172.')
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true); // Dev mode: allow network devices
+    },
+    credentials: true,
+  })
+);
+app.use(cookieParser());
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
+
+// Request Logger
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    console.log(`[HTTP] ${req.method} ${req.originalUrl} - ${res.statusCode} (${Date.now() - start}ms)`);
+  });
+  next();
+});
+
+// Health Check
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    brand: 'Enersense AI',
+    tagline: 'Understand Your Energy. Predict Your Bill. Save More.',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Mount Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/meters', meterRoutes);
+app.use('/api/readings', readingRoutes);
+app.use('/api/meter-scanner', ocrRoutes);
+app.use('/api/tariffs', tariffRoutes);
+app.use('/api/appliances', applianceRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/recommendations', recommendationRoutes);
+app.use('/api/forecast', forecastRoutes);
+app.use('/api/goals', goalRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/iot', iotRoutes);
+
+// Error Handler
+app.use(errorHandler);
+
+// Start Server
+async function startServer() {
+  try {
+    await connectDB();
+    await seedDatabase();
+
+    app.listen(config.port, '0.0.0.0', () => {
+      console.log(`====================================================`);
+      console.log(`Enersense AI Server running on port ${config.port}`);
+      console.log(`Client URL: ${config.clientUrl}`);
+      console.log(`Network Address: http://0.0.0.0:${config.port}`);
+      console.log(`====================================================`);
+    });
+  } catch (err) {
+    console.error('[Enersense AI Server] Failed to start:', err);
+    process.exit(1);
+  }
+}
+
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
+
+export default app;
