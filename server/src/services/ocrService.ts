@@ -1,8 +1,24 @@
 import fs from 'fs';
 import path from 'path';
-import sharp from 'sharp';
-import { createWorker } from 'tesseract.js';
 import { config } from '../config/env.js';
+
+let sharpLib: any = null;
+let sharpFailed = false;
+
+async function getSharp(): Promise<any> {
+  if (sharpFailed) return null;
+  if (!sharpLib) {
+    try {
+      const mod = await import('sharp');
+      sharpLib = mod.default || mod;
+    } catch (err) {
+      sharpFailed = true;
+      console.warn('[OcrService] Sharp native library unavailable in this environment. Continuing with raw image analysis:', err);
+      return null;
+    }
+  }
+  return sharpLib;
+}
 
 export interface OcrCandidate {
   value: number;
@@ -26,8 +42,18 @@ export class OcrService {
   private static async getWorker() {
     if (!this.workerPromise) {
       this.workerPromise = (async () => {
-        const worker = await createWorker('eng');
-        return worker;
+        try {
+          const tesseractMod = await import('tesseract.js');
+          const createWorkerFn = tesseractMod.createWorker || (tesseractMod as any).default?.createWorker;
+          if (!createWorkerFn) {
+            throw new Error('createWorker not found in tesseract.js');
+          }
+          const worker = await createWorkerFn('eng');
+          return worker;
+        } catch (err) {
+          console.error('[OcrService] Failed to initialize Tesseract worker:', err);
+          throw err;
+        }
       })();
     }
     return this.workerPromise;
@@ -145,84 +171,87 @@ export class OcrService {
         const passesToRun = [filePath];
 
         try {
-          const meta = await sharp(filePath).metadata();
-          const targetW = Math.max(1600, (meta.width || 800) * 2);
-          const grayPath = path.join(dir, `${base}_gray${ext}`);
-          const invPath = path.join(dir, `${base}_inv${ext}`);
-          const lcdPath = path.join(dir, `${base}_lcd${ext}`);
-          const greenLcdPath = path.join(dir, `${base}_green_lcd${ext}`);
+          const sharp = await getSharp();
+          if (sharp) {
+            const meta = await sharp(filePath).metadata();
+            const targetW = Math.max(1600, (meta.width || 800) * 2);
+            const grayPath = path.join(dir, `${base}_gray${ext}`);
+            const invPath = path.join(dir, `${base}_inv${ext}`);
+            const lcdPath = path.join(dir, `${base}_lcd${ext}`);
+            const greenLcdPath = path.join(dir, `${base}_green_lcd${ext}`);
 
-          // Pass 2: Upscaled grayscale normalized
-          await sharp(filePath)
-            .resize({ width: targetW, withoutEnlargement: false })
-            .grayscale()
-            .normalize()
-            .toFile(grayPath);
-          tempArtifacts.push(grayPath);
-          passesToRun.push(grayPath);
-
-          // Pass 5: Inverted pass for mechanical white-on-black cyclometer roller drums
-          await sharp(filePath)
-            .grayscale()
-            .normalize()
-            .negate({ alpha: false })
-            .toFile(invPath);
-          tempArtifacts.push(invPath);
-          passesToRun.push(invPath);
-
-          // Pass 3 & 4: Top/Central LCD region crop
-          if (meta.width && meta.height && meta.width > 100 && meta.height > 100) {
-            const left = Math.round(meta.width * 0.15);
-            const top = Math.round(meta.height * 0.05);
-            const width = Math.round(meta.width * 0.70);
-            const height = Math.round(meta.height * 0.45);
-
+            // Pass 2: Upscaled grayscale normalized
             await sharp(filePath)
-              .extract({ left, top, width, height })
-              .resize({ width: 1400, withoutEnlargement: false })
+              .resize({ width: targetW, withoutEnlargement: false })
               .grayscale()
               .normalize()
-              .toFile(lcdPath);
-            tempArtifacts.push(lcdPath);
-            passesToRun.push(lcdPath);
+              .toFile(grayPath);
+            tempArtifacts.push(grayPath);
+            passesToRun.push(grayPath);
 
-            // Pass 4: Green channel extraction for backlit emerald/cyan LCDs (L&T EM101+)
+            // Pass 5: Inverted pass for mechanical white-on-black cyclometer roller drums
             await sharp(filePath)
-              .extract({ left, top, width, height })
-              .resize({ width: 1400, withoutEnlargement: false })
-              .extractChannel('green')
-              .normalize()
-              .toFile(greenLcdPath);
-            tempArtifacts.push(greenLcdPath);
-            passesToRun.push(greenLcdPath);
-          }
-
-          // Pass 6: If wide image / browser screenshot, extract the nested meter preview box
-          if (meta.width && meta.height && meta.width > 700 && meta.height > 350) {
-            const prevLeft = Math.round(meta.width * 0.12);
-            const prevTop = Math.round(meta.height * 0.18);
-            const prevWidth = Math.round(meta.width * 0.40);
-            const prevHeight = Math.round(meta.height * 0.55);
-
-            const previewPath = path.join(dir, `${base}_nested_prev${ext}`);
-            await sharp(filePath)
-              .extract({ left: prevLeft, top: prevTop, width: prevWidth, height: prevHeight })
-              .resize({ width: 1400, withoutEnlargement: false })
               .grayscale()
               .normalize()
-              .toFile(previewPath);
-            tempArtifacts.push(previewPath);
-            passesToRun.push(previewPath);
+              .negate({ alpha: false })
+              .toFile(invPath);
+            tempArtifacts.push(invPath);
+            passesToRun.push(invPath);
 
-            const prevGreenPath = path.join(dir, `${base}_nested_prev_green${ext}`);
-            await sharp(filePath)
-              .extract({ left: prevLeft, top: prevTop, width: prevWidth, height: prevHeight })
-              .resize({ width: 1400, withoutEnlargement: false })
-              .extractChannel('green')
-              .normalize()
-              .toFile(prevGreenPath);
-            tempArtifacts.push(prevGreenPath);
-            passesToRun.push(prevGreenPath);
+            // Pass 3 & 4: Top/Central LCD region crop
+            if (meta.width && meta.height && meta.width > 100 && meta.height > 100) {
+              const left = Math.round(meta.width * 0.15);
+              const top = Math.round(meta.height * 0.05);
+              const width = Math.round(meta.width * 0.70);
+              const height = Math.round(meta.height * 0.45);
+
+              await sharp(filePath)
+                .extract({ left, top, width, height })
+                .resize({ width: 1400, withoutEnlargement: false })
+                .grayscale()
+                .normalize()
+                .toFile(lcdPath);
+              tempArtifacts.push(lcdPath);
+              passesToRun.push(lcdPath);
+
+              // Pass 4: Green channel extraction for backlit emerald/cyan LCDs (L&T EM101+)
+              await sharp(filePath)
+                .extract({ left, top, width, height })
+                .resize({ width: 1400, withoutEnlargement: false })
+                .extractChannel('green')
+                .normalize()
+                .toFile(greenLcdPath);
+              tempArtifacts.push(greenLcdPath);
+              passesToRun.push(greenLcdPath);
+            }
+
+            // Pass 6: If wide image / browser screenshot, extract the nested meter preview box
+            if (meta.width && meta.height && meta.width > 700 && meta.height > 350) {
+              const prevLeft = Math.round(meta.width * 0.12);
+              const prevTop = Math.round(meta.height * 0.18);
+              const prevWidth = Math.round(meta.width * 0.40);
+              const prevHeight = Math.round(meta.height * 0.55);
+
+              const previewPath = path.join(dir, `${base}_nested_prev${ext}`);
+              await sharp(filePath)
+                .extract({ left: prevLeft, top: prevTop, width: prevWidth, height: prevHeight })
+                .resize({ width: 1400, withoutEnlargement: false })
+                .grayscale()
+                .normalize()
+                .toFile(previewPath);
+              tempArtifacts.push(previewPath);
+              passesToRun.push(previewPath);
+
+              const prevGreenPath = path.join(dir, `${base}_nested_prev_green${ext}`);
+              await sharp(filePath)
+                .extract({ left: prevLeft, top: prevTop, width: prevWidth, height: prevHeight })
+                .resize({ width: 1400, withoutEnlargement: false })
+                .extractChannel('green')
+                .normalize()
+                .toFile(prevGreenPath);
+              tempArtifacts.push(prevGreenPath);
+              passesToRun.push(prevGreenPath);
+            }
           }
         } catch (prepErr) {
           console.warn('[OcrService] Preprocessing warning, proceeding with raw image:', prepErr);

@@ -57,17 +57,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Ensure DB and data store initialization for serverless / cold start
-app.use(async (_req, _res, next) => {
-  try {
-    await ensureInitialized();
-  } catch (err) {
-    console.warn('[Enersense AI Server] Cold start init warning:', err);
-  }
-  next();
-});
-
-// Health Check (both /api/health and /health)
+// Health Check (both /api/health, /health, /api, and root /)
 const healthHandler = (_req: express.Request, res: express.Response) => {
   res.status(200).json({
     status: 'ok',
@@ -78,6 +68,18 @@ const healthHandler = (_req: express.Request, res: express.Response) => {
 };
 app.get('/api/health', healthHandler);
 app.get('/health', healthHandler);
+app.get('/api', healthHandler);
+app.get('/', healthHandler);
+
+// Ensure DB and data store initialization for serverless / cold start
+app.use(async (_req, _res, next) => {
+  try {
+    await ensureInitialized();
+  } catch (err) {
+    console.warn('[Enersense AI Server] Cold start init warning:', err);
+  }
+  next();
+});
 
 // Mount Routes under both /api and root prefix for bulletproof proxy/rewrite compatibility
 const routePairs: [string, any][] = [
