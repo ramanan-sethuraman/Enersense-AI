@@ -1,9 +1,13 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-const uploadsDir = path.resolve(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+const uploadsDir = process.env.VERCEL ? '/tmp/uploads' : path.resolve(process.cwd(), 'uploads');
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch (e) {
+  console.warn('[UploadMiddleware] Filesystem notice: using /tmp for serverless uploads.');
 }
 
 const storage = multer.diskStorage({

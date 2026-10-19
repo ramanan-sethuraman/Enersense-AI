@@ -57,30 +57,49 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health Check
-app.get('/api/health', (req, res) => {
+// Ensure DB and data store initialization for serverless / cold start
+app.use(async (_req, _res, next) => {
+  try {
+    await ensureInitialized();
+  } catch (err) {
+    console.warn('[Enersense AI Server] Cold start init warning:', err);
+  }
+  next();
+});
+
+// Health Check (both /api/health and /health)
+const healthHandler = (_req: express.Request, res: express.Response) => {
   res.status(200).json({
     status: 'ok',
     brand: 'Enersense AI',
     tagline: 'Understand Your Energy. Predict Your Bill. Save More.',
     timestamp: new Date().toISOString(),
   });
-});
+};
+app.get('/api/health', healthHandler);
+app.get('/health', healthHandler);
 
-// Mount Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/meters', meterRoutes);
-app.use('/api/readings', readingRoutes);
-app.use('/api/meter-scanner', ocrRoutes);
-app.use('/api/tariffs', tariffRoutes);
-app.use('/api/appliances', applianceRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/recommendations', recommendationRoutes);
-app.use('/api/forecast', forecastRoutes);
-app.use('/api/goals', goalRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/iot', iotRoutes);
+// Mount Routes under both /api and root prefix for bulletproof proxy/rewrite compatibility
+const routePairs: [string, any][] = [
+  ['auth', authRoutes],
+  ['meters', meterRoutes],
+  ['readings', readingRoutes],
+  ['meter-scanner', ocrRoutes],
+  ['tariffs', tariffRoutes],
+  ['appliances', applianceRoutes],
+  ['dashboard', dashboardRoutes],
+  ['recommendations', recommendationRoutes],
+  ['forecast', forecastRoutes],
+  ['goals', goalRoutes],
+  ['reports', reportRoutes],
+  ['settings', settingsRoutes],
+  ['iot', iotRoutes],
+];
+
+for (const [prefix, router] of routePairs) {
+  app.use(`/api/${prefix}`, router);
+  app.use(`/${prefix}`, router);
+}
 
 // 404 Fallback for API routes (always return JSON, never HTML)
 app.use('/api', (req, res) => {

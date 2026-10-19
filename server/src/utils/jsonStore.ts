@@ -1,7 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 
-const DATA_DIR = path.resolve(__dirname, '../../data');
+const DATA_DIR = process.env.VERCEL
+  ? '/tmp/enersense_data'
+  : path.resolve(__dirname, '../../data');
 const STORE_PATH = path.join(DATA_DIR, 'store.json');
 
 interface StoreData {
@@ -17,30 +19,33 @@ class JsonStore {
   }
 
   private ensureStore() {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    if (fs.existsSync(STORE_PATH)) {
-      try {
+    try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+      if (fs.existsSync(STORE_PATH)) {
         const raw = fs.readFileSync(STORE_PATH, 'utf-8');
         this.data = JSON.parse(raw);
         this.isLoaded = true;
-      } catch (err) {
-        console.warn('[JsonStore] Failed to read existing store file, resetting.', err);
+      } else {
         this.data = {};
         this.save();
       }
-    } else {
-      this.data = {};
-      this.save();
+    } catch (err) {
+      console.warn('[JsonStore] Filesystem notice: operating with resilient in-memory storage on serverless.', err);
+      if (!this.data) this.data = {};
+      this.isLoaded = true;
     }
   }
 
   private save() {
     try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
       fs.writeFileSync(STORE_PATH, JSON.stringify(this.data, null, 2), 'utf-8');
     } catch (err) {
-      console.error('[JsonStore] Error saving store file:', err);
+      console.warn('[JsonStore] Notice: data persisted in-memory (disk write restricted).');
     }
   }
 

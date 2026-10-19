@@ -1,7 +1,11 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+try {
+  if (typeof __dirname !== 'undefined') {
+    dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+  }
+} catch {}
 dotenv.config(); // fallback to current dir .env
 
 export const config = {

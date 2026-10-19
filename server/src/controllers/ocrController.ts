@@ -3,9 +3,13 @@ import path from 'path';
 import fs from 'fs';
 import { OcrService } from '../services/ocrService.js';
 
-const uploadDir = path.resolve(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+const uploadDir = process.env.VERCEL ? '/tmp/uploads' : path.resolve(process.cwd(), 'uploads');
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+} catch (e) {
+  console.warn('[OcrController] Filesystem notice: using /tmp for serverless OCR uploads.');
 }
 
 export const OcrController = {
@@ -19,11 +23,13 @@ export const OcrController = {
         // Handle direct base64 camera capture from frontend
         const base64Data = req.body.imageBase64.replace(/^data:image\/\w+;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
-        const uploadDir = path.resolve(__dirname, '../../uploads');
-        if (!fs.existsSync(uploadDir)) {
-          fs.mkdirSync(uploadDir, { recursive: true });
-        }
-        tempPath = path.join(uploadDir, `ocr_cam_${Date.now()}.png`);
+        const targetUploadDir = process.env.VERCEL ? '/tmp/uploads' : path.resolve(process.cwd(), 'uploads');
+        try {
+          if (!fs.existsSync(targetUploadDir)) {
+            fs.mkdirSync(targetUploadDir, { recursive: true });
+          }
+        } catch {}
+        tempPath = path.join(targetUploadDir, `ocr_cam_${Date.now()}.png`);
         fs.writeFileSync(tempPath, buffer);
       } else {
         return res.status(400).json({
