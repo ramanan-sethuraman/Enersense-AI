@@ -2,6 +2,11 @@
   "name": "enersense-ai",
   "version": "1.0.0",
   "description": "Enersense AI – Intelligent Electricity Consumption Analysis and Energy-Saving Platform",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client"
+  ],
   "scripts": {
     "install:all": "npm install && cd server && npm install && cd ../client && npm install",
     "server": "npm --prefix server run dev",
