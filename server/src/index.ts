@@ -151,8 +151,17 @@ async function startServer() {
   }
 }
 
-// Only start listening if run directly (not under Vercel serverless functions or tests)
-if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
+// Only listen on a port when running locally (not on Vercel or in serverless production)
+const isServerless = !!(
+  process.env.VERCEL ||
+  process.env.VERCEL_ENV ||
+  process.env.NOW_REGION ||
+  process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.LAMBDA_TASK_ROOT ||
+  process.env.NODE_ENV === 'production'
+);
+
+if (!isServerless && process.env.NODE_ENV !== 'test') {
   startServer();
 }
 
