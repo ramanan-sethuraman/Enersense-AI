@@ -34,18 +34,18 @@ export const StatCard: React.FC<StatCardProps> = ({
   const isNeutral = typeof change === 'number' && change === 0;
 
   return (
-    <div className="relative overflow-hidden bg-white dark:bg-black rounded-2xl border border-emerald-500 hover:border-emerald-600 dark:border-emerald-500 dark:hover:border-emerald-400 p-5 shadow-soft hover:shadow-md dark:shadow-[0_0_15px_-3px_rgba(16,185,129,0.2)] transition-all duration-300">
+    <div className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 p-4 sm:p-5 shadow-soft hover:shadow-md transition-all duration-200">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <span className="text-xs font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400 block truncate">
+          <span className="text-[11px] sm:text-xs font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400 block truncate">
             {title}
           </span>
-          <div className="flex items-baseline gap-1.5 mt-2 flex-wrap">
-            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white truncate">
+          <div className="flex items-baseline gap-1.5 mt-1.5 sm:mt-2 flex-wrap">
+            <span className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white truncate">
               {value}
             </span>
             {unit && (
-              <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 shrink-0">
+              <span className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 shrink-0">
                 {unit}
               </span>
             )}
@@ -58,10 +58,10 @@ export const StatCard: React.FC<StatCardProps> = ({
       </div>
 
       {(typeof change === 'number' || subtitle) && (
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+        <div className="flex items-center gap-2 mt-2.5 sm:mt-3 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-800 text-[11px] sm:text-xs">
           {typeof change === 'number' && (
             <span
-              className={`inline-flex items-center font-bold px-1.5 py-0.5 rounded ${
+              className={`inline-flex items-center font-bold px-1.5 py-0.5 rounded text-[10px] sm:text-xs shrink-0 ${
                 isNegative
                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300'
                   : isPositive
@@ -69,9 +69,9 @@ export const StatCard: React.FC<StatCardProps> = ({
                   : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
               }`}
             >
-              {isNegative && <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />}
-              {isPositive && <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />}
-              {isNeutral && <Minus className="w-3.5 h-3.5 mr-0.5" />}
+              {isNegative && <ArrowDownRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-0.5" />}
+              {isPositive && <ArrowUpRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-0.5" />}
+              {isNeutral && <Minus className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-0.5" />}
               {Math.abs(change)}%
             </span>
           )}

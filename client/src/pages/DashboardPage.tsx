@@ -96,16 +96,16 @@ export const DashboardPage: React.FC = () => {
   const hasNoReadings = summary?.totalReadingsCount === 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-6 lg:space-y-8 min-w-0">
       {/* Top Banner / Welcome */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               Energy Dashboard
             </h1>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
             Real-time household consumption monitoring and tariff-aware estimates for{' '}
             <span className="font-semibold text-slate-700 dark:text-slate-300">
               {user?.locationPreferences?.state || 'Tamil Nadu'} ({user?.locationPreferences?.distributionCompany || 'TANGEDCO'})
@@ -113,20 +113,20 @@ export const DashboardPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Quick Action Buttons */}
-        <div className="grid grid-cols-3 sm:flex items-center gap-2 w-full sm:w-auto">
-          <Link to="/app/meter-scanner" className="w-full sm:w-auto">
-            <Button variant="primary" size="sm" className="w-full justify-center px-2 sm:px-3 text-xs" icon={<ScanLine className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}>
+        {/* Quick Action Buttons - smoothly scrollable on mobile without pushing margins */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 sm:py-0 w-full sm:w-auto shrink-0">
+          <Link to="/app/meter-scanner" className="shrink-0">
+            <Button variant="primary" size="sm" className="px-2.5 sm:px-3 text-xs" icon={<ScanLine className="w-3.5 h-3.5" />}>
               Scan Meter
             </Button>
           </Link>
-          <Link to="/app/bills" className="w-full sm:w-auto">
-            <Button variant="outline" size="sm" className="w-full justify-center px-2 sm:px-3 text-xs" icon={<Calculator className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}>
+          <Link to="/app/bills" className="shrink-0">
+            <Button variant="outline" size="sm" className="px-2.5 sm:px-3 text-xs" icon={<Calculator className="w-3.5 h-3.5" />}>
               Calculate Bill
             </Button>
           </Link>
-          <Link to="/app/appliances" className="w-full sm:w-auto">
-            <Button variant="outline" size="sm" className="w-full justify-center px-2 sm:px-3 text-xs" icon={<Cpu className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}>
+          <Link to="/app/appliances" className="shrink-0">
+            <Button variant="outline" size="sm" className="px-2.5 sm:px-3 text-xs" icon={<Cpu className="w-3.5 h-3.5" />}>
               Appliances
             </Button>
           </Link>
@@ -145,7 +145,7 @@ export const DashboardPage: React.FC = () => {
       ) : (
         <>
           {/* STATISTIC CARDS (Section 7) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 lg:gap-6 min-w-0">
             <StatCard
               title="Current Billing Consumption"
               value={summary?.currentBillingPeriodConsumption || 0}
@@ -192,7 +192,7 @@ export const DashboardPage: React.FC = () => {
 
           {/* DYNAMIC GROUNDED INSIGHTS CARDS */}
           {insights.length > 0 && (
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-blue-950/30 border border-emerald-500/20 shadow-soft">
+            <div className="p-3.5 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-blue-950/30 border border-emerald-500/20 shadow-soft min-w-0">
               <div className="flex items-center gap-2 mb-2 font-bold text-xs uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
                 <Lightbulb className="w-4 h-4 text-emerald-600" />
                 <span>Grounded Household Energy Insights</span>
@@ -209,30 +209,30 @@ export const DashboardPage: React.FC = () => {
           )}
 
           {/* CHARTS ROW 1: Monthly Consumption & Expense Trends */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 min-w-0">
             {/* Chart A: Monthly Consumption */}
-            <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-soft space-y-4">
+            <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-soft space-y-3 sm:space-y-4 min-w-0">
               <div className="flex items-start sm:items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
                     Monthly Electricity Consumption
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
                     Units consumed (kWh) during previous billing periods
                   </p>
                 </div>
-                <Badge variant="neutral" size="sm">
+                <Badge variant="neutral" size="sm" className="shrink-0">
                   Historical
                 </Badge>
               </div>
 
-              <div className="h-64 sm:h-72 w-full pt-2">
+              <div className="h-60 sm:h-72 w-full pt-2">
                 {consumptionPoints.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={consumptionPoints} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <BarChart data={consumptionPoints} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" opacity={0.5} />
-                      <XAxis dataKey="period" tick={{ fontSize: 11 }} stroke="#94A3B8" />
-                      <YAxis tick={{ fontSize: 11 }} stroke="#94A3B8" unit=" kWh" />
+                      <XAxis dataKey="period" tick={{ fontSize: 10 }} stroke="#94A3B8" />
+                      <YAxis tick={{ fontSize: 10 }} stroke="#94A3B8" unit=" kWh" width={48} />
                       <Tooltip
                         contentStyle={{
                           backgroundColor: '#0F172A',
@@ -255,25 +255,25 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             {/* Chart B: Electricity Expense Trends */}
-            <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-soft space-y-4">
+            <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-soft space-y-3 sm:space-y-4 min-w-0">
               <div className="flex items-start sm:items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
                     Electricity Expense Trends
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
                     Calculated billing amounts (₹) applying progressive slabs
                   </p>
                 </div>
-                <Badge variant="info" size="sm">
+                <Badge variant="info" size="sm" className="shrink-0">
                   Tariff Estimated
                 </Badge>
               </div>
 
-              <div className="h-64 sm:h-72 w-full pt-2">
+              <div className="h-60 sm:h-72 w-full pt-2">
                 {consumptionPoints.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={consumptionPoints} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <AreaChart data={consumptionPoints} margin={{ top: 10, right: 10, left: -5, bottom: 0 }}>
                       <defs>
                         <linearGradient id="billGradient" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#2563EB" stopOpacity={0.4} />
@@ -281,8 +281,8 @@ export const DashboardPage: React.FC = () => {
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" opacity={0.5} />
-                      <XAxis dataKey="period" tick={{ fontSize: 11 }} stroke="#94A3B8" />
-                      <YAxis tick={{ fontSize: 11 }} stroke="#94A3B8" unit="₹" />
+                      <XAxis dataKey="period" tick={{ fontSize: 10 }} stroke="#94A3B8" />
+                      <YAxis tick={{ fontSize: 10 }} stroke="#94A3B8" unit="₹" width={48} />
                       <Tooltip
                         contentStyle={{
                           backgroundColor: '#0F172A',
@@ -313,17 +313,19 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           {/* CHARTS ROW 2: Appliance Breakdown & Highest Energy Consumers */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 min-w-0">
             {/* Chart C: Category Breakdown */}
-            <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-soft space-y-4 lg:col-span-1">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Appliance Energy Distribution
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Share of estimated monthly power consumption
-              </p>
+            <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-soft space-y-3 sm:space-y-4 lg:col-span-1 min-w-0">
+              <div>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                  Appliance Energy Distribution
+                </h3>
+                <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+                  Share of estimated monthly power consumption
+                </p>
+              </div>
 
-              <div className="h-56 w-full flex items-center justify-center">
+              <div className="h-52 sm:h-56 w-full flex items-center justify-center">
                 {applianceData?.categoryBreakdown && applianceData.categoryBreakdown.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -333,8 +335,8 @@ export const DashboardPage: React.FC = () => {
                         nameKey="category"
                         cx="50%"
                         cy="50%"
-                        innerRadius={50}
-                        outerRadius={80}
+                        innerRadius={45}
+                        outerRadius={75}
                         paddingAngle={3}
                       >
                         {applianceData.categoryBreakdown.map((_: any, idx: number) => (
@@ -361,19 +363,19 @@ export const DashboardPage: React.FC = () => {
               </div>
 
               {/* Legend */}
-              <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
                 {applianceData?.categoryBreakdown?.slice(0, 4).map((c: any, idx: number) => (
-                  <div key={c.category} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  <div key={c.category} className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
                       <span
                         className="w-2.5 h-2.5 rounded-full shrink-0"
                         style={{ backgroundColor: COLORS[idx % COLORS.length] }}
                       ></span>
-                      <span className="truncate max-w-[120px] text-slate-700 dark:text-slate-300">
+                      <span className="truncate text-slate-700 dark:text-slate-300">
                         {c.category}
                       </span>
                     </div>
-                    <span className="font-semibold text-slate-900 dark:text-white font-mono">
+                    <span className="font-semibold text-slate-900 dark:text-white font-mono shrink-0">
                       {c.percentage}%
                     </span>
                   </div>
@@ -382,24 +384,24 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             {/* Highest Estimated Energy Consumers Ranking (Section 11) */}
-            <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-soft space-y-4 lg:col-span-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    Your Highest Estimated Energy Consumers
+            <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-soft space-y-3 sm:space-y-4 lg:col-span-2 min-w-0">
+              <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 sm:gap-3">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                    Highest Estimated Energy Consumers
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
                     Dynamically ranked by monthly kWh and operational duration
                   </p>
                 </div>
-                <Link to="/app/appliances">
-                  <Button variant="ghost" size="sm" icon={<ArrowRight className="w-3.5 h-3.5" />}>
+                <Link to="/app/appliances" className="self-start xs:self-center shrink-0">
+                  <Button variant="ghost" size="sm" className="px-2.5 py-1 text-xs" icon={<ArrowRight className="w-3.5 h-3.5" />}>
                     Manage All
                   </Button>
                 </Link>
               </div>
 
-              <div className="space-y-3 pt-1">
+              <div className="space-y-2.5 sm:space-y-3 pt-1">
                 {applianceData?.appliances?.slice(0, 4).map((app: any, idx: number) => (
                   <div
                     key={app._id}
