@@ -52,11 +52,11 @@ export const Button: React.FC<ButtonProps> = ({
       {loading ? (
         <Loader2 className="w-4 h-4 animate-spin text-current shrink-0" />
       ) : (
-        icon && iconPosition === 'left' && <span className="shrink-0">{icon}</span>
+        icon && iconPosition === 'left' && <span className="inline-flex shrink-0 items-center">{icon}</span>
       )}
-      <span className="truncate">{children}</span>
+      <span className="truncate inline-flex items-center justify-center gap-2">{children}</span>
       {!loading && icon && iconPosition === 'right' && (
-        <span className="shrink-0">{icon}</span>
+        <span className="inline-flex shrink-0 items-center">{icon}</span>
       )}
     </button>
   );

@@ -51,6 +51,8 @@ export const MeterScannerPage: React.FC = () => {
 
   // Live Camera WebRTC Stream State
   const [isCameraStreaming, setIsCameraStreaming] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment');
+  const [cameraPermissionError, setCameraPermissionError] = useState<string>('');
   const [torchOn, setTorchOn] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -83,6 +85,60 @@ export const MeterScannerPage: React.FC = () => {
     } catch (_) {}
   };
 
+  // Fast Client-Side Image Compression for Mobile Smartphone Photos (<200ms upload)
+  const compressImageFile = (
+    file: File | Blob,
+    maxDim = 1280,
+    quality = 0.85
+  ): Promise<{ file: File; dataUrl: string }> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        let w = img.width;
+        let h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          return reject(new Error('Canvas 2D context unavailable'));
+        }
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const originalName = (file as File).name || `meter_scan_${Date.now()}.jpg`;
+              const cleanName = originalName.replace(/\.[^/.]+$/, '') + '.jpg';
+              const compressedFile = new File([blob], cleanName, { type: 'image/jpeg' });
+              resolve({ file: compressedFile, dataUrl });
+            } else {
+              reject(new Error('Image blob conversion failed'));
+            }
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = (err) => {
+        URL.revokeObjectURL(objectUrl);
+        reject(err);
+      };
+      img.src = objectUrl;
+    });
+  };
+
   // Start Live Camera on Mount if in Scan Mode
   useEffect(() => {
     if (entryMode === 'scan') {
@@ -93,30 +149,93 @@ export const MeterScannerPage: React.FC = () => {
     };
   }, [entryMode]);
 
-  const startCameraStream = async () => {
+  // Keep live camera stream attached to video element reliably
+  useEffect(() => {
+    if (videoRef.current && mediaStreamRef.current) {
+      if (videoRef.current.srcObject !== mediaStreamRef.current) {
+        videoRef.current.srcObject = mediaStreamRef.current;
+      }
+      videoRef.current.play().catch(() => {});
+    }
+  }, [isCameraStreaming, entryMode]);
+
+  const startCameraStream = async (facing: 'environment' | 'user' = cameraFacing) => {
+    setCameraPermissionError('');
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.warn('getUserMedia not supported in this browser context (requires HTTPS on mobile)');
         setIsCameraStreaming(false);
+        setCameraPermissionError('Live WebRTC requires HTTPS or localhost. Tap "Open Phone Camera" below.');
         return;
       }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-        audio: false,
-      });
+
+      // Stop previous tracks cleanly
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+      }
+
+      let stream: MediaStream | null = null;
+
+      // Tier 1: Try ideal 1280x720 environment camera
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: facing },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        });
+      } catch (err1) {
+        console.warn('[Camera] Tier 1 constraint failed, trying basic facing mode:', err1);
+      }
+
+      // Tier 2: Try basic facingMode without resolution restrictions
+      if (!stream) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: facing },
+            audio: false,
+          });
+        } catch (err2) {
+          console.warn('[Camera] Tier 2 constraint failed, trying generic video:', err2);
+        }
+      }
+
+      // Tier 3: Try generic video
+      if (!stream) {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+      }
+
       mediaStreamRef.current = stream;
+
+      // Attach stream to video element
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play().catch(() => {});
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.setAttribute('webkit-playsinline', 'true');
+        videoRef.current.muted = true;
+        try {
+          await videoRef.current.play();
+        } catch (playErr) {
+          console.warn('[Camera] Autoplay caught:', playErr);
+        }
       }
+
       setIsCameraStreaming(true);
       setScanError('');
     } catch (err: any) {
-      console.warn('Live camera stream not directly accessible, will use native camera capture:', err);
+      console.warn('[Camera] Live stream not directly accessible:', err);
       setIsCameraStreaming(false);
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setCameraPermissionError('Camera permission was denied. Tap "Open Phone Camera" below to capture.');
+      } else {
+        setCameraPermissionError('Live stream preview unavailable. Tap "Open Phone Camera" below to capture.');
+      }
     }
   };
 
@@ -129,6 +248,13 @@ export const MeterScannerPage: React.FC = () => {
       videoRef.current.srcObject = null;
     }
     setIsCameraStreaming(false);
+  };
+
+  const toggleCameraFacing = async () => {
+    const nextFacing = cameraFacing === 'environment' ? 'user' : 'environment';
+    setCameraFacing(nextFacing);
+    triggerHaptic(30);
+    await startCameraStream(nextFacing);
   };
 
   const toggleTorch = async () => {
@@ -161,39 +287,71 @@ export const MeterScannerPage: React.FC = () => {
   // Capture Live Frame from Video Element
   const handleShutterClick = () => {
     triggerHaptic([40, 80]);
-    if (isCameraStreaming && videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      canvas.width = video.videoWidth || 1280;
-      canvas.height = video.videoHeight || 720;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-        fetch(dataUrl)
-          .then((res) => res.blob())
-          .then((blob) => {
-            const file = new File([blob], `meter_lens_${Date.now()}.jpg`, { type: 'image/jpeg' });
-            runLensDetection(file, dataUrl);
-          });
-        return;
+    const video = videoRef.current;
+
+    // Verify video is live, rendered, and has valid non-zero dimensions (never snap all-black frame)
+    if (isCameraStreaming && video && video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+      try {
+        const canvas = canvasRef.current || document.createElement('canvas');
+        const maxDim = 1280;
+        let w = video.videoWidth;
+        let h = video.videoHeight;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const file = new File([blob], `meter_lens_${Date.now()}.jpg`, { type: 'image/jpeg' });
+                runLensDetection(file, dataUrl);
+              } else {
+                nativeCameraInputRef.current?.click();
+              }
+            },
+            'image/jpeg',
+            0.85
+          );
+          return;
+        }
+      } catch (captureErr) {
+        console.warn('Canvas frame capture error, falling back to phone camera:', captureErr);
       }
     }
 
-    // Fallback: Launch native mobile camera
+    // Fallback: Launch native mobile camera directly (guaranteed real photo with autofocus/flash)
     nativeCameraInputRef.current?.click();
   };
 
-  // Handle native camera or gallery selection
-  const handleFileChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle native camera or gallery selection with client-side compression
+  const handleFileChosen = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = () => {
-        const dataUrl = reader.result as string;
+      const rawFile = e.target.files[0];
+      e.target.value = '';
+
+      try {
+        // Fast client-side resize and compression (<200ms upload time)
+        const { file, dataUrl } = await compressImageFile(rawFile, 1280, 0.85);
         runLensDetection(file, dataUrl);
-      };
-      reader.readAsDataURL(file);
+      } catch (err) {
+        console.warn('Image compression fallback:', err);
+        const reader = new FileReader();
+        reader.onload = () => {
+          runLensDetection(rawFile, reader.result as string);
+        };
+        reader.readAsDataURL(rawFile);
+      }
     }
   };
 
@@ -471,6 +629,17 @@ export const MeterScannerPage: React.FC = () => {
             </div>
           )}
 
+          {/* Camera Flip Button (Rear / Front) */}
+          {entryMode === 'scan' && (
+            <button
+              onClick={toggleCameraFacing}
+              className="p-1.5 sm:p-2 rounded-full border backdrop-blur-md transition-all shrink-0 bg-white/10 text-white/80 border-white/20 hover:bg-white/20 active:scale-95"
+              title="Flip Camera (Front/Rear)"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+            </button>
+          )}
+
           {/* Torch Toggle Button (Only in camera scan mode) */}
           {entryMode === 'scan' && isCameraStreaming && (
             <button
@@ -532,32 +701,66 @@ export const MeterScannerPage: React.FC = () => {
       {/* MAIN VIEWPORT: CAMERA SCANNER OR DIRECT MANUAL TYPING CONSOLE */}
       {savedReading === null && entryMode === 'scan' ? (
         /* CAMERA SCANNER VIEWPORT */
-        <div className="relative flex-1 w-full min-h-[380px] sm:min-h-[460px] flex items-center justify-center overflow-hidden">
-          {/* Live Camera Stream Video */}
-          {isCameraStreaming && !imagePreviewUrl ? (
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          ) : imagePreviewUrl ? (
+        <div className="relative flex-1 w-full min-h-[380px] sm:min-h-[460px] flex items-center justify-center overflow-hidden bg-slate-950">
+          {/* Live Camera Stream Video (always kept in DOM to prevent null ref black screen) */}
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+              isCameraStreaming && !imagePreviewUrl ? 'opacity-100 z-0' : 'opacity-0 pointer-events-none'
+            }`}
+            onLoadedMetadata={() => {
+              if (videoRef.current) {
+                videoRef.current.play().catch(() => {});
+              }
+            }}
+          />
+
+          {/* Captured / Uploaded Image Preview */}
+          {imagePreviewUrl && (
             <img
               src={imagePreviewUrl}
               alt="Scanned Meter"
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover z-0"
             />
-          ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 p-6 text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/60">
-                <Camera className="w-8 h-8" />
+          )}
+
+          {/* Mobile Viewfinder Ready / Fallback State (when live WebRTC stream is off or unpermitted) */}
+          {!isCameraStreaming && !imagePreviewUrl && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-6 text-center space-y-4 z-0">
+              <div
+                onClick={() => nativeCameraInputRef.current?.click()}
+                className="w-20 h-20 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center text-emerald-400 cursor-pointer shadow-[0_0_24px_rgba(16,185,129,0.2)] hover:scale-105 active:scale-95 transition-all"
+                title="Tap to Open Phone Camera"
+              >
+                <Camera className="w-10 h-10" />
               </div>
-              <div className="space-y-1">
-                <div className="text-sm font-semibold text-white">Camera Viewfinder</div>
-                <p className="text-xs text-white/60 max-w-xs">
-                  Tap the shutter below or upload a photo to scan your electric meter digits.
+              <div className="space-y-1.5 max-w-xs">
+                <div className="text-base font-bold text-white">Mobile Camera Scanner</div>
+                <p className="text-xs text-white/70">
+                  {cameraPermissionError || 'Tap below to launch your phone camera or upload a meter photo.'}
                 </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2.5 w-full max-w-xs pt-2">
+                <button
+                  type="button"
+                  onClick={() => nativeCameraInputRef.current?.click()}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold text-xs shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Open Phone Camera</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => galleryInputRef.current?.click()}
+                  className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  <span>Choose from Photos</span>
+                </button>
               </div>
             </div>
           )}
@@ -594,10 +797,10 @@ export const MeterScannerPage: React.FC = () => {
 
           {/* SCANNING STATUS PILL */}
           {isScanning && (
-            <div className="absolute top-16 z-30 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/80 backdrop-blur-md border border-white/20 shadow-2xl">
+            <div className="absolute top-16 z-30 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/85 backdrop-blur-md border border-emerald-500/40 shadow-2xl animate-pulse">
               <RefreshCw className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
               <span className="text-xs font-semibold text-white tracking-wide">
-                Analyzing meter display...
+                Analyzing meter numbers with AI...
               </span>
             </div>
           )}
@@ -609,15 +812,26 @@ export const MeterScannerPage: React.FC = () => {
                 <Info className="w-4 h-4 text-rose-400 shrink-0" />
                 <span>{scanError}</span>
               </div>
-              <button
-                onClick={() => {
-                  setScanError('');
-                  nativeCameraInputRef.current?.click();
-                }}
-                className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-[11px] shrink-0"
-              >
-                Retry
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => {
+                    setScanError('');
+                    nativeCameraInputRef.current?.click();
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-[11px]"
+                >
+                  Retake
+                </button>
+                <button
+                  onClick={() => {
+                    setScanError('');
+                    setEntryMode('manual');
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white font-semibold text-[11px]"
+                >
+                  Type
+                </button>
+              </div>
             </div>
           )}
         </div>

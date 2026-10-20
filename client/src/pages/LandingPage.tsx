@@ -72,13 +72,18 @@ export const LandingPage: React.FC = () => {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Link to="/register" className="w-full sm:w-auto">
-              <Button size="lg" variant="hero" className="w-full sm:w-auto px-6 sm:px-8">
-                <span>Get Started Free</span>
-                <ArrowRight className="w-4 h-4 shrink-0" />
+              <Button
+                size="lg"
+                variant="hero"
+                icon={<ArrowRight className="w-4 h-4 shrink-0" />}
+                iconPosition="right"
+                className="w-full sm:w-auto px-6 sm:px-8 font-semibold whitespace-nowrap"
+              >
+                Get Started Free
               </Button>
             </Link>
             <a href="#features" className="w-full sm:w-auto">
-              <Button size="lg" variant="hero" className="w-full sm:w-auto px-6 sm:px-8">
+              <Button size="lg" variant="hero" className="w-full sm:w-auto px-6 sm:px-8 font-semibold whitespace-nowrap">
                 Explore Features
               </Button>
             </a>

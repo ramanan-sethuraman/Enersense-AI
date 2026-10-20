@@ -1,6 +1,9 @@
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
-export async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+export async function request<T>(
+  endpoint: string,
+  options: RequestInit & { timeoutMs?: number } = {}
+): Promise<T> {
   const token = localStorage.getItem('enersense_token');
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -16,11 +19,16 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
     delete headers['Content-Type'];
   }
 
+  const timeoutMs = options.timeoutMs ?? 30000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     const res = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers,
       credentials: 'include',
+      signal: options.signal || controller.signal,
     });
 
     let data: any;
@@ -42,10 +50,15 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
 
     return data;
   } catch (err: any) {
+    if (err.name === 'AbortError') {
+      throw new Error('Scanning timed out. Please retry with a clearer photo or enter your reading manually.');
+    }
     if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
       throw new Error('Unable to connect to Enersense server. Please verify backend is running.');
     }
     throw err;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -69,11 +82,13 @@ export const api = {
   deleteReading: (id: string) => request<any>(`/readings/${id}`, { method: 'DELETE' }),
 
   // OCR
-  scanMeter: (formData: FormData) => request<any>('/meter-scanner/extract', { method: 'POST', body: formData }),
+  scanMeter: (formData: FormData) =>
+    request<any>('/meter-scanner/extract', { method: 'POST', body: formData, timeoutMs: 25000 }),
   scanMeterBase64: (imageBase64: string) =>
     request<any>('/meter-scanner/extract', {
       method: 'POST',
       body: JSON.stringify({ imageBase64 }),
+      timeoutMs: 25000,
     }),
 
   // Tariffs

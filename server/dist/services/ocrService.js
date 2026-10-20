@@ -99,6 +99,91 @@ class OcrService {
             return null;
         }
     }
+    /**
+     * Calls Google Gemini Multimodal Vision API (1.5 Flash)
+     * High-speed, high-accuracy meter digit recognition
+     */
+    static async callGeminiVision(filePath, apiKey) {
+        try {
+            if (!fs_1.default.existsSync(filePath))
+                return null;
+            const imageBuffer = fs_1.default.readFileSync(filePath);
+            const base64Data = imageBuffer.toString('base64');
+            const ext = path_1.default.extname(filePath).toLowerCase();
+            const mimeType = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            const prompt = `You are an expert electricity utility meter recognition AI.
+Inspect this photograph of an electric utility meter and extract the current cumulative energy reading in kWh.
+Rules:
+1. On mechanical cyclometer counters, extract the digits. The colored/red rightmost drum is the 1/10th decimal roller; black drums are whole units.
+2. On digital LCD static meters, identify the prominent active kWh reading. Ignore voltage (240V), frequency (50Hz), serial number (e.g. S.No.), or pulse constants (e.g. 16000 imp/kWh).
+3. Return ONLY a valid JSON object without markdown fences or backticks:
+{
+  "extractedReading": number or null,
+  "unit": "kWh",
+  "confidence": number between 1 and 100,
+  "meterType": "string (e.g. Digital LCD Static Watthour, Mechanical Cyclometer, Smart Meter)",
+  "candidates": [
+    { "value": number, "confidence": number, "label": "string" }
+  ],
+  "rawText": "string containing visible text on meter faceplate",
+  "message": "string"
+}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [
+                        {
+                            parts: [
+                                { text: prompt },
+                                {
+                                    inline_data: {
+                                        mime_type: mimeType,
+                                        data: base64Data,
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                    generationConfig: {
+                        temperature: 0.1,
+                        response_mime_type: 'application/json',
+                    },
+                }),
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                console.warn('[OcrService] Gemini Vision API returned status:', response.status, errText);
+                return null;
+            }
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!text)
+                return null;
+            const cleanJson = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+            const parsed = JSON.parse(cleanJson);
+            if (parsed && typeof parsed.extractedReading === 'number') {
+                const candidates = Array.isArray(parsed.candidates) && parsed.candidates.length > 0
+                    ? parsed.candidates
+                    : [{ value: parsed.extractedReading, confidence: parsed.confidence || 98, label: parsed.meterType || 'Gemini Vision Detected Reading' }];
+                return {
+                    extractedReading: parsed.extractedReading,
+                    unit: parsed.unit || 'kWh',
+                    confidence: Math.min(100, Math.max(10, parsed.confidence || 98)),
+                    status: 'success',
+                    candidates,
+                    rawText: parsed.rawText || `${parsed.extractedReading} kWh`,
+                    message: parsed.message || `Meter reading extracted successfully using Gemini Multimodal AI (${parsed.meterType || 'Electric Meter'}).`,
+                };
+            }
+            return null;
+        }
+        catch (err) {
+            console.warn('[OcrService] Gemini Vision error, falling back to local OCR:', err.message);
+            return null;
+        }
+    }
     static async processMeterImage(filePath) {
         const tempArtifacts = [];
         try {
@@ -113,7 +198,17 @@ class OcrService {
                     message: 'Image file not found on server.',
                 };
             }
-            // 1. Try Google Cloud Vision API if an API key is provided (Free tier: 1,000 free scans/month)
+            // 1. Try Gemini Multimodal Vision API if AI API key is configured
+            const geminiApiKey = (env_js_1.config.aiApiKey || process.env.AI_API_KEY || '').trim();
+            if (geminiApiKey.length > 0 && (env_js_1.config.aiProvider === 'gemini' || env_js_1.config.ocrProvider === 'gemini')) {
+                console.log('[OcrService] Running Gemini Multimodal Vision text extraction...');
+                const geminiResult = await this.callGeminiVision(filePath, geminiApiKey);
+                if (geminiResult && geminiResult.extractedReading !== null) {
+                    console.log(`[OcrService] Gemini Vision successful: reading=${geminiResult.extractedReading} kWh`);
+                    return geminiResult;
+                }
+            }
+            // 2. Try Google Cloud Vision API if an API key is provided
             const visionApiKey = (env_js_1.config.googleVisionApiKey || process.env.GOOGLE_VISION_API_KEY || '').trim();
             if (visionApiKey.length > 0 || env_js_1.config.ocrProvider === 'google_vision') {
                 if (visionApiKey.length > 0) {
@@ -130,126 +225,113 @@ class OcrService {
                         }
                     }
                 }
-                console.log('[OcrService] Falling back to local enhanced OCR engine...');
             }
-            let combinedRawText = '';
-            let bestConfidence = 0;
+            // 3. Mock Provider for tests
             if (env_js_1.config.ocrProvider === 'mock') {
-                combinedRawText = 'kWh 002485.4 240V 50Hz SINGLE PHASE';
-                bestConfidence = 92;
+                const parsed = this.parseMeterDigits('kWh 002485.4 240V 50Hz SINGLE PHASE', 92);
+                return {
+                    ...parsed,
+                    message: 'Meter reading extracted successfully (mock mode).',
+                };
             }
-            else {
+            console.log('[OcrService] Running optimized local OCR engine with fast early exit...');
+            const ocrWork = async () => {
                 const worker = await this.getWorker();
+                try {
+                    await worker.setParameters({
+                        tessedit_char_whitelist: '0123456789.kKwhWHVvAa-:/()[] ',
+                    });
+                }
+                catch (_) { }
                 const dir = path_1.default.dirname(filePath);
                 const ext = path_1.default.extname(filePath) || '.png';
                 const base = path_1.default.basename(filePath, ext);
-                // Multi-Pass Image Preprocessing using sharp:
-                // Pass 1: Raw image
-                // Pass 2: Upscaled grayscale normalized
-                // Pass 3: Digital LCD / Counter ROI crop (top 5% to 50%, 15% to 85% width) upscaled
-                // Pass 4: Green-channel LCD pass (for green backlit LCD displays like L&T EM101+)
-                // Pass 5: Inverted color pass (for mechanical cyclometer roller numbers)
-                const passesToRun = [filePath];
-                try {
-                    const sharp = await getSharp();
-                    if (sharp) {
-                        const meta = await sharp(filePath).metadata();
-                        const targetW = Math.max(1600, (meta.width || 800) * 2);
-                        const grayPath = path_1.default.join(dir, `${base}_gray${ext}`);
-                        const invPath = path_1.default.join(dir, `${base}_inv${ext}`);
-                        const lcdPath = path_1.default.join(dir, `${base}_lcd${ext}`);
-                        const greenLcdPath = path_1.default.join(dir, `${base}_green_lcd${ext}`);
-                        // Pass 2: Upscaled grayscale normalized
+                const sharp = await getSharp();
+                let targetForPass1 = filePath;
+                let meta = null;
+                if (sharp) {
+                    try {
+                        meta = await sharp(filePath).metadata();
+                        const origW = meta.width || 800;
+                        // Downscale high-resolution smartphone photos to 1200px max (optimal size for Tesseract)
+                        const targetW = Math.min(1200, origW);
+                        const grayPath = path_1.default.join(dir, `${base}_gray_${Date.now()}${ext}`);
                         await sharp(filePath)
-                            .resize({ width: targetW, withoutEnlargement: false })
+                            .resize({ width: targetW, height: targetW, fit: 'inside', withoutEnlargement: true })
                             .grayscale()
                             .normalize()
+                            .sharpen()
                             .toFile(grayPath);
                         tempArtifacts.push(grayPath);
-                        passesToRun.push(grayPath);
-                        // Pass 5: Inverted pass for mechanical white-on-black cyclometer roller drums
-                        await sharp(filePath)
-                            .grayscale()
-                            .normalize()
-                            .negate({ alpha: false })
-                            .toFile(invPath);
-                        tempArtifacts.push(invPath);
-                        passesToRun.push(invPath);
-                        // Pass 3 & 4: Top/Central LCD region crop
-                        if (meta.width && meta.height && meta.width > 100 && meta.height > 100) {
-                            const left = Math.round(meta.width * 0.15);
-                            const top = Math.round(meta.height * 0.05);
-                            const width = Math.round(meta.width * 0.70);
-                            const height = Math.round(meta.height * 0.45);
-                            await sharp(filePath)
-                                .extract({ left, top, width, height })
-                                .resize({ width: 1400, withoutEnlargement: false })
-                                .grayscale()
-                                .normalize()
-                                .toFile(lcdPath);
-                            tempArtifacts.push(lcdPath);
-                            passesToRun.push(lcdPath);
-                            // Pass 4: Green channel extraction for backlit emerald/cyan LCDs (L&T EM101+)
-                            await sharp(filePath)
-                                .extract({ left, top, width, height })
-                                .resize({ width: 1400, withoutEnlargement: false })
-                                .extractChannel('green')
-                                .normalize()
-                                .toFile(greenLcdPath);
-                            tempArtifacts.push(greenLcdPath);
-                            passesToRun.push(greenLcdPath);
-                        }
-                        // Pass 6: If wide image / browser screenshot, extract the nested meter preview box
-                        if (meta.width && meta.height && meta.width > 700 && meta.height > 350) {
-                            const prevLeft = Math.round(meta.width * 0.12);
-                            const prevTop = Math.round(meta.height * 0.18);
-                            const prevWidth = Math.round(meta.width * 0.40);
-                            const prevHeight = Math.round(meta.height * 0.55);
-                            const previewPath = path_1.default.join(dir, `${base}_nested_prev${ext}`);
-                            await sharp(filePath)
-                                .extract({ left: prevLeft, top: prevTop, width: prevWidth, height: prevHeight })
-                                .resize({ width: 1400, withoutEnlargement: false })
-                                .grayscale()
-                                .normalize()
-                                .toFile(previewPath);
-                            tempArtifacts.push(previewPath);
-                            passesToRun.push(previewPath);
-                            const prevGreenPath = path_1.default.join(dir, `${base}_nested_prev_green${ext}`);
-                            await sharp(filePath)
-                                .extract({ left: prevLeft, top: prevTop, width: prevWidth, height: prevHeight })
-                                .resize({ width: 1400, withoutEnlargement: false })
-                                .extractChannel('green')
-                                .normalize()
-                                .toFile(prevGreenPath);
-                            tempArtifacts.push(prevGreenPath);
-                            passesToRun.push(prevGreenPath);
-                        }
+                        targetForPass1 = grayPath;
+                    }
+                    catch (prepErr) {
+                        console.warn('[OcrService] Sharp preprocessing warning, using raw image:', prepErr);
                     }
                 }
-                catch (prepErr) {
-                    console.warn('[OcrService] Preprocessing warning, proceeding with raw image:', prepErr);
+                // Pass 1: Enhanced Grayscale recognition
+                console.log('[OcrService] Running Pass 1 (Grayscale Normalized)...');
+                let combinedRawText = '';
+                let bestConfidence = 0;
+                const pass1Result = await worker.recognize(targetForPass1);
+                if (pass1Result?.data?.text) {
+                    combinedRawText = pass1Result.data.text;
+                    bestConfidence = pass1Result.data.confidence ? Math.round(pass1Result.data.confidence) : 75;
                 }
-                // Run recognition across all passes and accumulate text signals
-                for (const targetPath of passesToRun) {
+                // Early exit if Pass 1 detected a valid, high-confidence reading (~1.5s total!)
+                const parsedPass1 = this.parseMeterDigits(combinedRawText, bestConfidence);
+                if (parsedPass1.status === 'success' && parsedPass1.extractedReading !== null && parsedPass1.confidence >= 80) {
+                    console.log(`[OcrService] Pass 1 early success: ${parsedPass1.extractedReading} kWh (confidence=${parsedPass1.confidence})`);
+                    return {
+                        ...parsedPass1,
+                        message: 'Meter reading recognized successfully.',
+                    };
+                }
+                // Pass 2: Central Counter Region of Interest (only if Pass 1 was uncertain)
+                if (sharp && meta && meta.width && meta.height && meta.width > 100 && meta.height > 100) {
                     try {
-                        if (fs_1.default.existsSync(targetPath)) {
-                            const { data } = await worker.recognize(targetPath);
-                            if (data && data.text) {
-                                combinedRawText += `\n${data.text}`;
-                                if (data.confidence && data.confidence > bestConfidence) {
-                                    bestConfidence = Math.round(data.confidence);
-                                }
+                        console.log('[OcrService] Running Pass 2 (Center Counter ROI)...');
+                        const left = Math.round(meta.width * 0.10);
+                        const top = Math.round(meta.height * 0.10);
+                        const width = Math.round(meta.width * 0.80);
+                        const height = Math.round(meta.height * 0.55);
+                        const roiPath = path_1.default.join(dir, `${base}_roi_${Date.now()}${ext}`);
+                        await sharp(filePath)
+                            .extract({ left, top, width, height })
+                            .resize({ width: 1000, height: 1000, fit: 'inside', withoutEnlargement: true })
+                            .grayscale()
+                            .normalize()
+                            .toFile(roiPath);
+                        tempArtifacts.push(roiPath);
+                        const pass2Result = await worker.recognize(roiPath);
+                        if (pass2Result?.data?.text) {
+                            combinedRawText += `\n${pass2Result.data.text}`;
+                            if (pass2Result.data.confidence && pass2Result.data.confidence > bestConfidence) {
+                                bestConfidence = Math.round(pass2Result.data.confidence);
                             }
                         }
                     }
-                    catch (passErr) {
-                        console.warn(`[OcrService] Pass failed for ${targetPath}:`, passErr.message);
+                    catch (roiErr) {
+                        console.warn('[OcrService] Pass 2 ROI crop error:', roiErr);
                     }
                 }
-            }
-            // Analyze accumulated text signals for meter readings
-            const parsed = this.parseMeterDigits(combinedRawText, bestConfidence || 75);
-            return parsed;
+                return this.parseMeterDigits(combinedRawText, bestConfidence || 75);
+            };
+            // Safety timeout wrapper: OCR will NEVER hang beyond 14 seconds
+            const timeoutPromise = new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve({
+                        extractedReading: null,
+                        unit: 'kWh',
+                        confidence: 0,
+                        status: 'failed',
+                        candidates: [],
+                        rawText: '',
+                        message: 'Counter numbers were blurry or low contrast. Please align the meter counter in center and tap to re-scan.',
+                    });
+                }, 14000);
+            });
+            return await Promise.race([ocrWork(), timeoutPromise]);
         }
         catch (err) {
             console.error('[OcrService] Error processing meter image:', err);
